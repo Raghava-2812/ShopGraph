@@ -1,0 +1,56 @@
+{
+  "purchased_product": "Dell Inspiron 15",
+  "recommendations": [
+    {
+      "product": "Dell USB-C Hub",
+      "score": 91.5,
+      "reasons": [
+        "Directly compatible with the purchased product",
+        "Shares USB-C feature with Dell Inspiron 15",
+        "Useful for Office Work",
+        "Useful for Work From Home"
+      ]
+    },
+    {
+      "product": "Logitech MX Master 3S",
+      "score": 87.2,
+      "reasons": [
+        "Directly compatible with the purchased product",
+        "Shares Bluetooth feature with Dell Inspiron 15",
+        "Useful for Programming",
+        "Useful for Office Work"
+      ]
+    },
+    {
+      "product": "Dell Laptop Stand",
+      "score": 84.0,
+      "reasons": [
+        "Accessory for the purchased product",
+        "Useful for Office Work",
+        "Useful for Work From Home"
+      ]
+    },
+    {
+      "product": "Dell 24 inch Monitor",
+      "score": 80.5,
+      "reasons": [
+        "Works with the purchased product",
+        "Shares HDMI feature with Dell Inspiron 15",
+        "Useful for Programming",
+        "Useful for Office Work",
+        "Useful for Work From Home"
+      ]
+    },
+    {
+      "product": "Keychron K2",
+      "score": 78.3,
+      "reasons": [
+        "Directly compatible with the purchased product",
+        "Shares Bluetooth feature with Dell Inspiron 15",
+        "Useful for Programming",
+        "Useful for Office Work"
+      ]
+    }
+  ],
+  "_note": "Scores shown here are illustrative. Actual scores depend on the loaded graph data and are calculated dynamically by the scoring engine."
+}
