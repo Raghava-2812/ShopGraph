@@ -4,7 +4,7 @@ ShopGraph is a **Knowledge Graph based Product Recommendation System** that reco
 
 Unlike a basic recommendation system that relies only on product similarity, ShopGraph uses a **Knowledge Graph + relationship-aware candidate generation + weighted recommendation scoring** to produce recommendations that are both relevant and explainable.
 
-🚀 **[Live Demo](https://your-frontend.onrender.com)**
+🚀 **[Live Demo](https://shopgraph-frontend.onrender.com)**
 
 ---
 
