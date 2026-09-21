@@ -47,7 +47,7 @@ export default function Navbar({ apiHealthy = true, onOpenGraphInfo }) {
           </a>
 
           <a
-            href="http://127.0.0.1:8000/docs"
+            href="https://shopgraph-backend.onrender.com/docs"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
