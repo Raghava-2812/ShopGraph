@@ -1,38 +1,44 @@
 """
-ShopGraph - FastAPI Application
+ShopGraph E-Commerce - FastAPI Application
 app/main.py
 
-Exposes the recommendation engine as a REST API.
-
-Endpoints:
-  GET /                          → Health / welcome
-  GET /products                  → List all products
-  GET /products/{product_name}   → Product detail with graph relationships
-  GET /recommend/{product_name}  → Recommendations (optional ?top_k=N)
+Upgraded from a simple recommendation-only API to a complete
+e-commerce backend with:
+  - JWT Authentication
+  - User behavior tracking
+  - Shopping cart
+  - Orders
+  - Personalized recommendations via Neo4j Knowledge Graph
 """
 
-from fastapi import FastAPI, HTTPException, Query, Path
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import get_db
-from app.models import (
-    HealthResponse,
-    ProductDetail,
-    RecommendationResponse,
-    RecommendationItem,
-)
-from app.recommender import ProductRecommender
+from app.sqlite_db import init_db
+from app.routers import auth, products, events, cart, orders, recommendations
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    init_db()
+    yield
+    # Shutdown (nothing needed)
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description=(
-        "Knowledge Graph based product recommendation system using Neo4j. "
-        "Every recommendation includes a transparent explanation."
+        "ShopGraph: Knowledge Graph powered e-commerce recommendation system. "
+        "Recommendations are automatically generated based on user behavior "
+        "and Neo4j graph relationships."
     ),
+    lifespan=lifespan,
 )
 
-# Enable CORS for Vite frontend
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,165 +52,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ── GET / ────────────────────────────────────────────────────────────────────
-
-@app.get("/", response_model=HealthResponse, tags=["Health"])
-def root() -> HealthResponse:
-    """Welcome endpoint — confirms the API is running."""
-    return HealthResponse(
-        message=settings.APP_NAME,
-        version=settings.APP_VERSION,
-    )
+# Include all routers
+app.include_router(auth.router)
+app.include_router(products.router)
+app.include_router(events.router)
+app.include_router(cart.router)
+app.include_router(orders.router)
+app.include_router(recommendations.router)
 
 
-# ── GET /products ─────────────────────────────────────────────────────────────
-
-@app.get("/products", response_model=list[dict], tags=["Products"])
-def list_products() -> list[dict]:
-    """
-    Return a list of all products stored in the knowledge graph,
-    including their category, brand, and price.
-    """
-    query = """
-    MATCH (p:Product)
-    OPTIONAL MATCH (p)-[:BELONGS_TO]->(cat:Category)
-    OPTIONAL MATCH (p)-[:MADE_BY]->(b:Brand)
-    RETURN p.name AS name,
-           p.price AS price,
-           p.description AS description,
-           cat.name AS category,
-           b.name AS brand
-    ORDER BY cat.name, p.name
-    """
-    with get_db() as db:
-        rows = db.run_query(query)
-
-    if not rows:
-        raise HTTPException(
-            status_code=503,
-            detail="Could not retrieve products. Is the knowledge graph loaded?",
-        )
-    return rows
+# Keep legacy endpoint for backward compatibility
+@app.get("/", tags=["Health"])
+def root():
+    return {
+        "message": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "docs": "/docs",
+    }
 
 
-# ── GET /products/{product_name} ──────────────────────────────────────────────
-
-@app.get(
-    "/products/{product_name}",
-    response_model=ProductDetail,
-    tags=["Products"],
-)
-def get_product(
-    product_name: str = Path(..., description="Exact product name, e.g. Dell Inspiron 15"),
-) -> ProductDetail:
-    """
-    Return full product details including all graph relationships:
-    features, use cases, compatible products, accessories, etc.
-    """
-    query = """
-    MATCH (p:Product {name: $name})
-    OPTIONAL MATCH (p)-[:BELONGS_TO]->(cat:Category)
-    OPTIONAL MATCH (p)-[:MADE_BY]->(b:Brand)
-    OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature)
-    OPTIONAL MATCH (p)-[:USED_FOR]->(u:UseCase)
-    OPTIONAL MATCH (p)-[:COMPATIBLE_WITH]->(comp:Product)
-    OPTIONAL MATCH (p)-[:ACCESSORY]->(acc:Product)
-    OPTIONAL MATCH (p)-[:WORKS_WITH]->(ww:Product)
-    OPTIONAL MATCH (p)-[:SIMILAR_TO]->(sim:Product)
-    RETURN
-      p.name AS name,
-      p.price AS price,
-      p.description AS description,
-      cat.name AS category,
-      b.name AS brand,
-      collect(DISTINCT f.name)    AS features,
-      collect(DISTINCT u.name)    AS use_cases,
-      collect(DISTINCT comp.name) AS compatible_with,
-      collect(DISTINCT acc.name)  AS accessories,
-      collect(DISTINCT ww.name)   AS works_with,
-      collect(DISTINCT sim.name)  AS similar_to
-    """
-    with get_db() as db:
-        rows = db.run_query(query, {"name": product_name})
-
-    if not rows or rows[0]["name"] is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Product '{product_name}' not found in the knowledge graph.",
-        )
-
-    row = rows[0]
-    return ProductDetail(
-        name=row["name"],
-        price=row["price"],
-        description=row["description"],
-        category=row["category"],
-        brand=row["brand"],
-        features=row["features"] or [],
-        use_cases=row["use_cases"] or [],
-        compatible_with=row["compatible_with"] or [],
-        accessories=row["accessories"] or [],
-        works_with=row["works_with"] or [],
-        similar_to=row["similar_to"] or [],
-    )
-
-
-# ── GET /recommend/{product_name} ─────────────────────────────────────────────
-
-@app.get(
-    "/recommend/{product_name}",
-    response_model=RecommendationResponse,
-    tags=["Recommendations"],
-)
-def recommend(
-    product_name: str = Path(
-        ..., description="The product the user has purchased, e.g. Dell Inspiron 15"
-    ),
-    top_k: int = Query(
-        default=settings.DEFAULT_TOP_K,
-        ge=1,
-        le=settings.MAX_TOP_K,
-        description="Number of recommendations to return (1–20)",
-    ),
-) -> RecommendationResponse:
-    """
-    Generate explainable product recommendations for a purchased product.
-
-    The engine:
-    1. Finds the product in Neo4j.
-    2. Traverses graph relationships to generate candidates.
-    3. Scores each candidate across 5 dimensions.
-    4. Returns the top-K recommendations with explanations.
-
-    Returns 404 if the product does not exist in the knowledge graph.
-    """
+# Legacy recommendation endpoint (preserved)
+@app.get("/recommend/{product_name}", tags=["Legacy"])
+def recommend_legacy(product_name: str, top_k: int = 5):
+    """Legacy endpoint for backward compatibility."""
+    from fastapi import HTTPException
+    from app.database import get_db
+    from app.recommender import ProductRecommender
+    
     with get_db() as db:
         recommender = ProductRecommender(db)
         try:
             results = recommender.recommend(product_name, top_k=top_k)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
-
+    
     if not results:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"No recommendations found for '{product_name}'. "
-                "Make sure the knowledge graph is loaded."
-            ),
-        )
-
-    recommendations = [
-        RecommendationItem(
-            product=r.product,
-            score=r.score,
-            reasons=r.reasons,
-        )
-        for r in results
-    ]
-
-    return RecommendationResponse(
-        purchased_product=product_name,
-        recommendations=recommendations,
-    )
+        raise HTTPException(status_code=404, detail=f"No recommendations found for '{product_name}'")
+    
+    return {
+        "purchased_product": product_name,
+        "recommendations": [
+            {"product": r.product, "score": r.score, "reasons": r.reasons}
+            for r in results
+        ]
+    }
