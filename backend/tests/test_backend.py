@@ -218,3 +218,71 @@ def test_invalid_event_type():
         "product_name": "Dell Inspiron 15",
     }, headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 400
+
+
+# ── Wishlist Tests ────────────────────────────────────────────────────────────
+
+def test_wishlist_flow():
+    import uuid
+    email = f"wish_{uuid.uuid4().hex[:8]}@test.com"
+    resp = client.post("/auth/register", json={
+        "name": "Wish User", "email": email, "password": "wishpassword123"
+    })
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Add to wishlist
+    resp = client.post("/wishlist/Dell%20Inspiron%2015", headers=headers)
+    assert resp.status_code == 201
+
+    # Check wishlisted
+    resp = client.get("/wishlist/check/Dell%20Inspiron%2015", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["is_wishlisted"] is True
+
+    # Get wishlist
+    resp = client.get("/wishlist", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] >= 1
+
+    # Remove from wishlist
+    resp = client.delete("/wishlist/Dell%20Inspiron%2015", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "removed"
+
+
+# ── Recently Viewed & Category Recs ───────────────────────────────────────────
+
+def test_recently_viewed_flow():
+    import uuid
+    email = f"rec_{uuid.uuid4().hex[:8]}@test.com"
+    resp = client.post("/auth/register", json={
+        "name": "Rec User", "email": email, "password": "recpassword123"
+    })
+    token = resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Record VIEW_PRODUCT event
+    resp = client.post("/events", json={
+        "event_type": "VIEW_PRODUCT",
+        "product_name": "Dell Inspiron 15",
+        "category_name": "Laptops",
+    }, headers=headers)
+    assert resp.status_code == 201
+
+    # Fetch recently viewed
+    resp = client.get("/recommendations/recently-viewed", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data.get("items", [])) >= 1
+
+
+def test_category_recommendations():
+    resp = client.get("/recommendations/category/Laptops")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "top_picks" in data
+    assert len(data["top_picks"]) >= 1
+

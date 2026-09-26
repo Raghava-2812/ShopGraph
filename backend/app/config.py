@@ -30,5 +30,14 @@ class Settings:
     DEFAULT_TOP_K: int = 5
     MAX_TOP_K: int = 20
 
+    # Recommendation scoring weights
+    WEIGHT_RELATIONSHIP: float = 0.30
+    WEIGHT_FEATURE: float = 0.20
+    WEIGHT_CATEGORY: float = 0.15
+    WEIGHT_USE_CASE: float = 0.10
+    WEIGHT_USER_INTEREST: float = 0.15
+    WEIGHT_POPULARITY: float = 0.05
+    WEIGHT_RECENCY: float = 0.05
+
 
 settings = Settings()

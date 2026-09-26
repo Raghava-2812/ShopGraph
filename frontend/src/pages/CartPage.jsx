@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { recommendationsAPI } from '../services/api.js';
 import RecommendationSection from '../components/RecommendationSection.jsx';
+import { getProductImageUrl, handleImageError } from '../utils/imageHelper.js';
 
 export default function CartPage() {
   const { user } = useAuth();
@@ -64,8 +65,13 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             {cart.items.map(item => (
               <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-4 flex gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl font-bold text-blue-200">{item.product_name.charAt(0)}</span>
+                <div className="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden p-1 flex items-center justify-center border border-slate-100 flex-shrink-0">
+                  <img
+                    src={getProductImageUrl({ name: item.product_name })}
+                    alt={item.product_name}
+                    onError={(e) => handleImageError(e, 'Product', item.product_name)}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <Link to={`/products/${encodeURIComponent(item.product_name)}`} className="font-semibold text-slate-800 hover:text-blue-600 text-sm">

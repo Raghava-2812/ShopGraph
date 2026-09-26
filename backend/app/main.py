@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.sqlite_db import init_db
-from app.routers import auth, products, events, cart, orders, recommendations
+from app.routers import auth, products, events, cart, orders, recommendations, wishlist
 
 
 @asynccontextmanager
@@ -64,13 +64,23 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": str(exc) or "Internal server error"},
     )
 
-# Include all routers
+# Include all routers (standard path)
 app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(events.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(recommendations.router)
+app.include_router(wishlist.router)
+
+# Include /api prefixed router aliases for compatibility with /api/... callers
+app.include_router(auth.router, prefix="/api")
+app.include_router(products.router, prefix="/api")
+app.include_router(events.router, prefix="/api")
+app.include_router(cart.router, prefix="/api")
+app.include_router(orders.router, prefix="/api")
+app.include_router(recommendations.router, prefix="/api")
+app.include_router(wishlist.router, prefix="/api")
 
 
 # Keep legacy endpoint for backward compatibility

@@ -80,14 +80,24 @@ class OrderItem(Base):
     price = Column(Float, nullable=True)
 
 
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    product_name = Column(String(200), nullable=False)
+    added_at = Column(DateTime, default=func.now())
+
+
 class UserEvent(Base):
     __tablename__ = "user_events"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    event_type = Column(String(50), nullable=False)  # VIEW, SEARCH, ADD_TO_CART, etc.
+    event_type = Column(String(50), nullable=False)  # VIEW, SEARCH, ADD_TO_CART, WISHLIST, etc.
     product_name = Column(String(200), nullable=True)
     search_query = Column(String(500), nullable=True)
+    category_name = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=func.now())
 
 
@@ -96,6 +106,16 @@ class UserEvent(Base):
 def init_db() -> None:
     """Create all tables if they don't exist and ensure demo user exists."""
     Base.metadata.create_all(bind=engine)
+
+    # Safe migration: ensure category_name column exists in user_events
+    with engine.connect() as conn:
+        try:
+            from sqlalchemy import text
+            conn.execute(text("ALTER TABLE user_events ADD COLUMN category_name VARCHAR(100)"))
+            conn.commit()
+        except Exception:
+            pass  # column already exists
+
     print("[OK] SQLite database initialized")
 
     # Ensure demo user exists

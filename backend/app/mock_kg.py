@@ -8,7 +8,6 @@ during local development/testing without an active Neo4j instance.
 """
 
 from typing import Any
-import re
 from app.kg_loader import (
     PRODUCTS,
     CATEGORIES,
@@ -24,23 +23,22 @@ class InMemoryKnowledgeGraph:
     """In-memory Knowledge Graph that evaluates ShopGraph Cypher queries."""
 
     def __init__(self):
-        # Index products by name
-        self.products = {p["name"]: dict(p) for p in PRODUCTS}
+        # Index products by name with a full shallow copy
+        self.products = {}
+        for p in PRODUCTS:
+            prod_copy = dict(p)
+            prod_copy["features"] = set(p.get("features", []))
+            prod_copy["use_cases"] = set(p.get("use_cases", []))
+            prod_copy["compatible_with"] = set()
+            prod_copy["accessories"] = set()
+            prod_copy["works_with"] = set()
+            prod_copy["similar_to"] = set()
+            self.products[p["name"]] = prod_copy
+
         self.categories = {c["name"]: dict(c) for c in CATEGORIES}
         self.features = {f["name"]: dict(f) for f in FEATURES}
         self.brands = {b["name"]: dict(b) for b in BRANDS}
         self.use_cases = {u["name"]: dict(u) for u in USE_CASES}
-
-        # Initialize product relationship containers
-        for name, p in self.products.items():
-            p["category"] = None
-            p["brand"] = None
-            p["features"] = set()
-            p["use_cases"] = set()
-            p["compatible_with"] = set()
-            p["accessories"] = set()
-            p["works_with"] = set()
-            p["similar_to"] = set()
 
         # Load entity relationships
         for src, rel, tgt in PRODUCT_RELATIONS:
@@ -66,6 +64,26 @@ class InMemoryKnowledgeGraph:
                 elif rel == "SIMILAR_TO":
                     self.products[src]["similar_to"].add(tgt)
 
+    def _format_product(self, p: dict) -> dict:
+        """Format product record with all rich e-commerce attributes."""
+        return {
+            "name": p.get("name"),
+            "slug": p.get("slug", ""),
+            "price": p.get("price"),
+            "original_price": p.get("original_price", p.get("price")),
+            "discount_percentage": p.get("discount_percentage", 0),
+            "rating": p.get("rating", 4.5),
+            "review_count": p.get("review_count", 100),
+            "stock": p.get("stock", 25),
+            "image_url": p.get("image_url", ""),
+            "description": p.get("description", ""),
+            "category": p.get("category"),
+            "brand": p.get("brand"),
+            "model": p.get("model", ""),
+            "release_year": p.get("release_year", 2023),
+            "specs": p.get("specs", {}),
+        }
+
     def run_query(self, query: str, parameters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Interpret and execute Cypher query against in-memory graph."""
         params = parameters or {}
@@ -80,25 +98,22 @@ class InMemoryKnowledgeGraph:
             cats = sorted(self.categories.keys())
             return [{"name": c} for c in cats]
 
-        # 3. Product details (full view)
+        # 3. Product details (full view with relations and specs)
         if "collect(DISTINCT comp.name)" in q or "collect(DISTINCT acc.name)" in q:
             name = params.get("name")
             p = self.products.get(name)
             if not p:
                 return [{"name": None}]
-            return [{
-                "name": p["name"],
-                "price": p["price"],
-                "description": p["description"],
-                "category": p["category"],
-                "brand": p["brand"],
+            rec = self._format_product(p)
+            rec.update({
                 "features": sorted(list(p["features"])),
                 "use_cases": sorted(list(p["use_cases"])),
                 "compatible_with": sorted(list(p["compatible_with"])),
                 "accessories": sorted(list(p["accessories"])),
                 "works_with": sorted(list(p["works_with"])),
                 "similar_to": sorted(list(p["similar_to"])),
-            }]
+            })
+            return [rec]
 
         # 4. Recommender product info
         if "collect(DISTINCT f.name)" in q and "cat.name AS category" in q:
@@ -221,50 +236,34 @@ class InMemoryKnowledgeGraph:
             results = []
             for p in sorted(self.products.values(), key=lambda x: x["name"]):
                 name_match = search_term in p["name"].lower()
-                desc_match = search_term in (p["description"] or "").lower()
-                cat_match = search_term in (p["category"] or "").lower()
-                brand_match = search_term in (p["brand"] or "").lower()
+                desc_match = search_term in (p.get("description") or "").lower()
+                cat_match = search_term in (p.get("category") or "").lower()
+                brand_match = search_term in (p.get("brand") or "").lower()
                 if name_match or desc_match or cat_match or brand_match:
-                    results.append({
-                        "name": p["name"],
-                        "price": p["price"],
-                        "description": p["description"],
-                        "category": p["category"],
-                        "brand": p["brand"],
-                    })
+                    results.append(self._format_product(p))
             return results
 
         # 12. Filter by names (WHERE p.name IN $names)
         if "WHERE p.name IN $names" in q:
-            names = set(params.get("names", []))
+            names = params.get("names", [])
             results = []
-            for name in params.get("names", []):
+            for name in names:
                 if name in self.products:
-                    p = self.products[name]
-                    results.append({
-                        "name": p["name"],
-                        "price": p["price"],
-                        "description": p["description"],
-                        "category": p["category"],
-                        "brand": p["brand"],
-                    })
+                    results.append(self._format_product(self.products[name]))
             return results
 
-        # 13. General List products (with optional category or limit)
+        # 13. General List products (with optional category, brand, or limit)
         if "MATCH (p:Product)" in q:
             category = params.get("category")
+            brand = params.get("brand")
             limit = params.get("limit")
             results = []
-            for p in sorted(self.products.values(), key=lambda x: (x["category"] or "", x["name"])):
-                if category and p["category"] != category:
+            for p in sorted(self.products.values(), key=lambda x: (x.get("category") or "", x["name"])):
+                if category and p.get("category") != category:
                     continue
-                results.append({
-                    "name": p["name"],
-                    "price": p["price"],
-                    "description": p["description"],
-                    "category": p["category"],
-                    "brand": p["brand"],
-                })
+                if brand and p.get("brand") != brand:
+                    continue
+                results.append(self._format_product(p))
             if limit is not None:
                 results = results[:int(limit)]
             return results

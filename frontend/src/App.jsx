@@ -2,12 +2,14 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
+import { WishlistProvider } from './context/WishlistContext.jsx';
 import Navbar from './components/Navbar.jsx';
 import HomePage from './pages/HomePage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import CartPage from './pages/CartPage.jsx';
+import WishlistPage from './pages/WishlistPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -33,20 +35,23 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
-          <Routes>
-            {/* Pages with Navbar */}
-            <Route path="/" element={<Layout><HomePage /></Layout>} />
-            <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
-            <Route path="/products/:productName" element={<Layout><ProductDetailPage /></Layout>} />
-            <Route path="/search" element={<Layout><SearchPage /></Layout>} />
-            <Route path="/cart" element={<Layout><CartPage /></Layout>} />
-            <Route path="/checkout" element={<Layout><CheckoutPage /></Layout>} />
-            <Route path="/orders" element={<Layout><OrdersPage /></Layout>} />
-            <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-            {/* Auth pages - no navbar */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Routes>
+          <WishlistProvider>
+            <Routes>
+              {/* Pages with Navbar */}
+              <Route path="/" element={<Layout><HomePage /></Layout>} />
+              <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
+              <Route path="/products/:productName" element={<Layout><ProductDetailPage /></Layout>} />
+              <Route path="/search" element={<Layout><SearchPage /></Layout>} />
+              <Route path="/cart" element={<Layout><CartPage /></Layout>} />
+              <Route path="/wishlist" element={<Layout><WishlistPage /></Layout>} />
+              <Route path="/checkout" element={<Layout><CheckoutPage /></Layout>} />
+              <Route path="/orders" element={<Layout><OrdersPage /></Layout>} />
+              <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+              {/* Auth pages - no navbar */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Routes>
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
