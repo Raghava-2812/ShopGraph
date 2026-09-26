@@ -312,7 +312,7 @@ def create_constraints(db: Neo4jConnection) -> None:
             f"CREATE CONSTRAINT {constraint_name} IF NOT EXISTS "
             f"FOR (n:{label}) REQUIRE n.{prop} IS UNIQUE"
         )
-    print("✅ Constraints created")
+    print("[OK] Constraints created")
 
 
 def load_categories(db: Neo4jConnection) -> int:
@@ -322,7 +322,7 @@ def load_categories(db: Neo4jConnection) -> int:
             "MERGE (c:Category {name: $name}) SET c.description = $description",
             {"name": cat["name"], "description": cat["description"]},
         )
-    print(f"✅ Categories inserted: {len(CATEGORIES)}")
+    print(f"[OK] Categories inserted: {len(CATEGORIES)}")
     return len(CATEGORIES)
 
 
@@ -333,7 +333,7 @@ def load_features(db: Neo4jConnection) -> int:
             "MERGE (f:Feature {name: $name}) SET f.description = $description",
             {"name": feat["name"], "description": feat["description"]},
         )
-    print(f"✅ Features inserted: {len(FEATURES)}")
+    print(f"[OK] Features inserted: {len(FEATURES)}")
     return len(FEATURES)
 
 
@@ -344,7 +344,7 @@ def load_brands(db: Neo4jConnection) -> int:
             "MERGE (b:Brand {name: $name}) SET b.country = $country",
             {"name": brand["name"], "country": brand["country"]},
         )
-    print(f"✅ Brands inserted: {len(BRANDS)}")
+    print(f"[OK] Brands inserted: {len(BRANDS)}")
     return len(BRANDS)
 
 
@@ -355,7 +355,7 @@ def load_use_cases(db: Neo4jConnection) -> int:
             "MERGE (u:UseCase {name: $name}) SET u.description = $description",
             {"name": uc["name"], "description": uc["description"]},
         )
-    print(f"✅ Use cases inserted: {len(USE_CASES)}")
+    print(f"[OK] Use cases inserted: {len(USE_CASES)}")
     return len(USE_CASES)
 
 
@@ -368,7 +368,7 @@ def load_products(db: Neo4jConnection) -> int:
             {"name": product["name"], "price": product["price"],
              "description": product["description"]},
         )
-    print(f"✅ Products inserted: {len(PRODUCTS)}")
+    print(f"[OK] Products inserted: {len(PRODUCTS)}")
     return len(PRODUCTS)
 
 
@@ -425,7 +425,7 @@ def load_relationships(db: Neo4jConnection) -> int:
         db.run_query(query, {"src": src, "tgt": tgt})
         count += 1
 
-    print(f"✅ Relationships created: {count}")
+    print(f"[OK] Relationships created: {count}")
     return count
 
 
@@ -434,7 +434,7 @@ def load_all(db: Neo4jConnection) -> None:
     Full KG load pipeline.
     Safe to run multiple times (uses MERGE throughout).
     """
-    print("\n🚀 Loading ShopGraph Knowledge Graph into Neo4j...\n")
+    print("\n[START] Loading ShopGraph Knowledge Graph into Neo4j...\n")
     create_constraints(db)
     load_categories(db)
     load_features(db)
@@ -442,4 +442,4 @@ def load_all(db: Neo4jConnection) -> None:
     load_use_cases(db)
     load_products(db)
     load_relationships(db)
-    print("\n🎉 Knowledge Graph loaded successfully!\n")
+    print("\n[DONE] Knowledge Graph loaded successfully!\n")

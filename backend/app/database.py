@@ -15,6 +15,7 @@ from app.config import settings
 class Neo4jConnection:
     """
     Manages connection to a Neo4j database.
+    Automatically falls back to in-memory Knowledge Graph if Neo4j is offline.
 
     Usage:
         db = Neo4jConnection()
@@ -24,6 +25,7 @@ class Neo4jConnection:
 
     def __init__(self) -> None:
         self._driver: Driver | None = None
+        self._use_fallback: bool = False
         self._connect()
 
     def _connect(self) -> None:
@@ -35,19 +37,12 @@ class Neo4jConnection:
             )
             # Verify the connection is live
             self._driver.verify_connectivity()
-            print(f"✅ Connected to Neo4j at {settings.NEO4J_URI}")
-        except ServiceUnavailable as e:
-            raise ConnectionError(
-                f"Cannot reach Neo4j at {settings.NEO4J_URI}. "
-                "Make sure Neo4j is running and the URI is correct.\n"
-                f"Details: {e}"
-            )
-        except AuthError as e:
-            raise ConnectionError(
-                "Neo4j authentication failed. "
-                "Check NEO4J_USERNAME and NEO4J_PASSWORD in your .env file.\n"
-                f"Details: {e}"
-            )
+            print(f"[OK] Connected to Neo4j at {settings.NEO4J_URI}")
+        except Exception as e:
+            # When Neo4j AuraDB or local Neo4j is not reachable, fall back to in-memory graph
+            self._driver = None
+            self._use_fallback = True
+            print(f"[INFO] Neo4j offline ({e.__class__.__name__}). Using In-Memory Knowledge Graph.")
 
     def run_query(
         self,
@@ -55,28 +50,26 @@ class Neo4jConnection:
         parameters: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Execute a Cypher query and return results as a list of dicts.
-
-        Args:
-            query:      A Cypher query string with $param placeholders.
-            parameters: A dict of parameters to bind (prevents injection).
-
-        Returns:
-            A list of record dicts.
+        Execute a Cypher query on Neo4j, or in-memory Knowledge Graph if Neo4j is offline.
         """
-        if self._driver is None:
-            raise RuntimeError("Driver is not initialised. Call _connect() first.")
-
         parameters = parameters or {}
-        with self._driver.session() as session:
-            result = session.run(query, parameters)
-            return [record.data() for record in result]
+        if self._driver is not None and not self._use_fallback:
+            try:
+                with self._driver.session() as session:
+                    result = session.run(query, parameters)
+                    return [record.data() for record in result]
+            except Exception as e:
+                print(f"[WARN] Neo4j query error: {e}. Falling back to in-memory KG.")
+                self._use_fallback = True
+
+        from app.mock_kg import mock_kg
+        return mock_kg.run_query(query, parameters)
 
     def close(self) -> None:
         """Close the driver and release network resources."""
         if self._driver:
             self._driver.close()
-            print("🔒 Neo4j connection closed.")
+            print("[CLOSED] Neo4j connection closed.")
 
     def verify_connection(self) -> bool:
         """Return True if the database is reachable, False otherwise."""

@@ -38,6 +38,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -51,6 +54,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Ensure any unhandled exception returns a clean JSON error response with CORS headers."""
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc) or "Internal server error"},
+    )
 
 # Include all routers
 app.include_router(auth.router)

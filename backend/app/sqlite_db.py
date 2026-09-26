@@ -94,9 +94,28 @@ class UserEvent(Base):
 # ── Init ──────────────────────────────────────────────────────────────────────
 
 def init_db() -> None:
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist and ensure demo user exists."""
     Base.metadata.create_all(bind=engine)
-    print("✅ SQLite database initialized")
+    print("[OK] SQLite database initialized")
+
+    # Ensure demo user exists
+    db = SessionLocal()
+    try:
+        from app.auth import hash_password
+        existing = db.query(User).filter(User.email == "demo@shopgraph.com").first()
+        if not existing:
+            demo_user = User(
+                name="Demo User",
+                email="demo@shopgraph.com",
+                password_hash=hash_password("demo123"),
+            )
+            db.add(demo_user)
+            db.commit()
+            print("[OK] Demo user created: demo@shopgraph.com / demo123")
+    except Exception as e:
+        db.rollback()
+    finally:
+        db.close()
 
 
 def get_sqlite_db():
