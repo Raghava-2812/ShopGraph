@@ -1,7 +1,18 @@
+/**
+ * ShopGraph - User Account Registration Page
+ * File: frontend/src/pages/RegisterPage.jsx
+ *
+ * Registration interface creating new user profiles with name, email, and password.
+ * Performs client-side password matching validation before dispatching to `/auth/register`.
+ */
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+/**
+ * Account registration form component.
+ */
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -9,6 +20,10 @@ export default function RegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Validate password confirmation and register new user.
+   * @param {React.FormEvent} e
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {

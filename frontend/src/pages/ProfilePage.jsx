@@ -1,8 +1,19 @@
+/**
+ * ShopGraph - User Profile Dashboard Page
+ * File: frontend/src/pages/ProfilePage.jsx
+ *
+ * User account dashboard summarizing current identity, quick navigation links
+ * to orders and cart, and session logout functionality.
+ */
+
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Package, LogOut, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
+/**
+ * User account profile dashboard component.
+ */
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();

@@ -2,14 +2,20 @@
 ShopGraph - Database & Knowledge Graph Seed Script
 app/seed.py
 
+This script initializes both layers of the ShopGraph architecture:
+  1. Neo4j Knowledge Graph:
+     - Populates 83 catalog products across 19 categories and 26 brands.
+     - Creates 36 features, 13 use cases, and 270+ semantic relationship edges.
+  2. SQLite Application Database:
+     - Initializes tables for users, carts, orders, and interaction events.
+     - Creates default demo user (`demo@shopgraph.com` / `demo123`).
+     - Pre-seeds realistic behavioral interaction history (views, searches, cart items, wishlist)
+       to showcase immediate personalized recommendations without requiring manual user setup.
+
 Usage:
     python -m app.seed
-    or
+    # or
     python scripts/seed_expanded_kg.py
-
-Initializes:
-  1. Neo4j Knowledge Graph with 83 products, 19 categories, 26 brands, 36 features, 13 use cases, 270+ relationships
-  2. SQLite Database with tables, demo user (demo@shopgraph.com / demo123), and sample interaction history
 """
 
 import sys
@@ -28,7 +34,14 @@ from app.kg_loader import load_all
 
 
 def seed_demo_user_history():
-    """Seeds rich interaction history for demo@shopgraph.com for demonstration."""
+    """Seed sample interaction signals for demo@shopgraph.com into SQLite.
+    
+    Populates:
+      - 4 VIEW events (laptops and productivity mice)
+      - 3 SEARCH events ('laptop', 'mouse', 'dell')
+      - 1 Active Cart Item with ADD_TO_CART event ('Dell USB-C Hub')
+      - 1 Saved Wishlist Item with WISHLIST event ('Sony WH-1000XM5')
+    """
     print("\n[START] Seeding demo user and interaction history into SQLite...")
     init_db()
     db = SessionLocal()
@@ -58,6 +71,7 @@ def seed_demo_user_history():
         # 1. VIEW events (Laptops & Tech)
         view_products = [
             ("Dell Inspiron 15", "Laptops"),
+
             ("HP Pavilion 15", "Laptops"),
             ("Logitech MX Master 3S", "Mice"),
             ("Apple MacBook Air M3", "Laptops"),

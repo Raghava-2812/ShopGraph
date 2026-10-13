@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Product Catalog Card Component
+ * File: frontend/src/components/ProductCard.jsx
+ *
+ * Renders an e-commerce product card with responsive image loading, fallback SVG
+ * generation, dynamic discount badge, star rating, interactive wishlist heart toggle,
+ * direct add-to-cart button with optimistic visual feedback, and optional graph reason tag.
+ */
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Heart, Check } from 'lucide-react';
@@ -6,6 +15,13 @@ import { useWishlist } from '../context/WishlistContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getProductImageUrl, handleImageError } from '../utils/imageHelper.js';
 
+/**
+ * Standard product card for catalog grids and listing pages.
+ *
+ * @param {Object} props
+ * @param {Object} props.product - Product data object
+ * @param {string} [props.reason] - Graph-derived recommendation rationale (if rendered in recommendation contexts)
+ */
 export default function ProductCard({ product, reason }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();

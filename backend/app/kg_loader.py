@@ -1,9 +1,23 @@
 """
-ShopGraph - Knowledge Graph Loader
+ShopGraph - Knowledge Graph ETL Loader
 app/kg_loader.py
 
-Loads all nodes and relationships into Neo4j using MERGE statements.
-This module is used by scripts/load_kg.py and scripts/seed_expanded_kg.py.
+This module contains the extract-transform-load (ETL) pipeline that populates
+the Neo4j Knowledge Graph with domain entities and semantic edges:
+  - Node Labels: Product, Category, Feature, Brand, UseCase
+  - Relationship Types:
+      * Product -[:BELONGS_TO]-> Category
+      * Product -[:MADE_BY]-> Brand
+      * Product -[:HAS_FEATURE]-> Feature
+      * Product -[:USED_FOR]-> UseCase
+      * Product -[:COMPATIBLE_WITH]-> Product
+      * Product -[:ACCESSORY]-> Product
+      * Product -[:WORKS_WITH]-> Product
+      * Product -[:SIMILAR_TO]-> Product
+
+Idempotency:
+  All Cypher operations use MERGE rather than CREATE, making this loader
+  completely safe to run repeatedly without producing duplicate nodes or relationships.
 """
 
 from typing import TYPE_CHECKING
@@ -22,7 +36,14 @@ from app.expanded_data import (
 
 
 def create_constraints(db: "Neo4jConnection") -> None:
-    """Create uniqueness constraints for all node labels."""
+    """Create uniqueness constraints for all node labels in Neo4j.
+    
+    Uniqueness constraints guarantee data integrity and build underlying indexes
+    that dramatically accelerate MERGE operations and Cypher MATCH lookups.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+    """
     constraints = [
         ("Product", "name", "product_name_unique"),
         ("Category", "name", "category_name_unique"),
@@ -39,7 +60,14 @@ def create_constraints(db: "Neo4jConnection") -> None:
 
 
 def load_categories(db: "Neo4jConnection") -> int:
-    """Merge Category nodes into the graph."""
+    """Merge Category nodes with descriptive metadata into the graph.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total number of Category nodes processed.
+    """
     for cat in CATEGORIES:
         db.run_query(
             "MERGE (c:Category {name: $name}) SET c.description = $description",
@@ -50,7 +78,14 @@ def load_categories(db: "Neo4jConnection") -> int:
 
 
 def load_features(db: "Neo4jConnection") -> int:
-    """Merge Feature nodes into the graph."""
+    """Merge Feature nodes (e.g., 'ANC', 'USB-C', '4K OLED') into the graph.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total number of Feature nodes processed.
+    """
     for feat in FEATURES:
         db.run_query(
             "MERGE (f:Feature {name: $name}) SET f.description = $description",
@@ -61,7 +96,14 @@ def load_features(db: "Neo4jConnection") -> int:
 
 
 def load_brands(db: "Neo4jConnection") -> int:
-    """Merge Brand nodes into the graph."""
+    """Merge Brand nodes (e.g., 'Apple', 'Dell', 'Sony') into the graph.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total number of Brand nodes processed.
+    """
     for brand in BRANDS:
         db.run_query(
             "MERGE (b:Brand {name: $name}) SET b.country = $country",
@@ -72,7 +114,14 @@ def load_brands(db: "Neo4jConnection") -> int:
 
 
 def load_use_cases(db: "Neo4jConnection") -> int:
-    """Merge UseCase nodes into the graph."""
+    """Merge UseCase nodes (e.g., 'Gaming', 'Remote Work', 'Fitness') into the graph.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total number of UseCase nodes processed.
+    """
     for uc in USE_CASES:
         db.run_query(
             "MERGE (u:UseCase {name: $name}) SET u.description = $description",
@@ -83,7 +132,17 @@ def load_use_cases(db: "Neo4jConnection") -> int:
 
 
 def load_products(db: "Neo4jConnection") -> int:
-    """Merge Product nodes with full rich attributes into the graph."""
+    """Merge Product nodes with complete e-commerce attributes into the graph.
+    
+    Attributes include pricing, discounts, stock, ratings, review counts,
+    and image URLs.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total number of Product nodes processed.
+    """
     for product in PRODUCTS:
         db.run_query(
             """
@@ -123,6 +182,7 @@ def load_products(db: "Neo4jConnection") -> int:
     return len(PRODUCTS)
 
 
+# Query templates for Product-to-Entity relationships
 _REL_QUERY_TEMPLATES = {
     "BELONGS_TO": (
         "MATCH (p:Product {name: $src}), (t:Category {name: $tgt}) "
@@ -142,6 +202,7 @@ _REL_QUERY_TEMPLATES = {
     ),
 }
 
+# Query templates for Product-to-Product relationships
 _PROD_PROD_TEMPLATES = {
     "COMPATIBLE_WITH": (
         "MATCH (a:Product {name: $src}), (b:Product {name: $tgt}) "
@@ -163,14 +224,23 @@ _PROD_PROD_TEMPLATES = {
 
 
 def load_relationships(db: "Neo4jConnection") -> int:
-    """Create all product relationships in the graph."""
+    """Create all semantic and cross-product relationships in the graph.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
+
+    Returns:
+        int: Total count of relationships created.
+    """
     count = 0
+    # Create product -> metadata entity edges
     for src, rel_type, tgt in PRODUCT_RELATIONS:
         if rel_type in _REL_QUERY_TEMPLATES:
             query = _REL_QUERY_TEMPLATES[rel_type]
             db.run_query(query, {"src": src, "tgt": tgt})
             count += 1
 
+    # Create product -> product compatibility and accessory edges
     for src, rel_type, tgt in PRODUCT_PRODUCT_RELATIONS:
         if rel_type in _PROD_PROD_TEMPLATES:
             query = _PROD_PROD_TEMPLATES[rel_type]
@@ -182,9 +252,13 @@ def load_relationships(db: "Neo4jConnection") -> int:
 
 
 def load_all(db: "Neo4jConnection") -> None:
-    """
-    Full KG load pipeline.
-    Safe to run multiple times (uses MERGE throughout).
+    """Full Knowledge Graph ETL load pipeline.
+    
+    Executes constraints, loads all entity nodes, and constructs all semantic relationships.
+    Safe to run repeatedly on new or existing database instances.
+
+    Args:
+        db (Neo4jConnection): Active database connection.
     """
     print("\n[START] Loading ShopGraph Knowledge Graph into Neo4j...\n")
     create_constraints(db)
@@ -195,3 +269,4 @@ def load_all(db: "Neo4jConnection") -> None:
     load_products(db)
     load_relationships(db)
     print("\n[DONE] Knowledge Graph loaded successfully!\n")
+

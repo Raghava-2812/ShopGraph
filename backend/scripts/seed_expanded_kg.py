@@ -1,6 +1,13 @@
 """
 ShopGraph - Seed Expanded Knowledge Graph Script
 scripts/seed_expanded_kg.py
+
+Convenience CLI entry point to run `app.seed.main()`.
+Initializes the SQLite application database, demo user account with interaction history,
+and populates the Neo4j Knowledge Graph.
+
+Usage:
+    python scripts/seed_expanded_kg.py
 """
 
 import sys
@@ -15,3 +22,4 @@ from app.seed import main
 
 if __name__ == "__main__":
     main()
+

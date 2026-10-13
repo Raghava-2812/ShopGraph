@@ -1,6 +1,22 @@
+/**
+ * ShopGraph - Error State Component
+ * File: frontend/src/components/ErrorState.jsx
+ *
+ * Displays an intuitive troubleshooting card when backend communication fails.
+ * Presents the target API URL, error message diagnostics, and a quick retry button.
+ */
+
 import React from 'react';
 import { AlertTriangle, RefreshCw, Terminal } from 'lucide-react';
 
+/**
+ * Error boundary / failure state presentation.
+ *
+ * @param {Object} props
+ * @param {Error|string|null} props.error - Caught error object or message string
+ * @param {Function} [props.onRetry] - Callback invoked when the user clicks "Try Again"
+ * @param {string} [props.apiUrl] - Configured API base endpoint to assist debugging
+ */
 export default function ErrorState({ error, onRetry, apiUrl = 'http://127.0.0.1:8000' }) {
   return (
     <div className="my-10 p-8 sm:p-10 bg-white rounded-2xl border border-rose-200 shadow-sm text-center flex flex-col items-center justify-center">

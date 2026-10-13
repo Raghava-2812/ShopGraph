@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Checkout & Order Placement Page
+ * File: frontend/src/pages/CheckoutPage.jsx
+ *
+ * Checkout form collecting shipping details (name, address, city) and submitting
+ * an order creation transaction. Emits PURCHASE telemetry events server-side
+ * and resets active shopping cart state upon success.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Package } from 'lucide-react';
@@ -5,6 +14,9 @@ import { ordersAPI } from '../services/api.js';
 import { useCart } from '../context/CartContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
+/**
+ * Checkout and order fulfillment page.
+ */
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { user } = useAuth();

@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Recommendation Card Component
+ * File: frontend/src/components/RecommendationCard.jsx
+ *
+ * Special card for displaying recommended products. Shows graph match score
+ * badge, expandable "Why recommended?" explainability accordion backed by Neo4j
+ * path connections, context badges (e.g., "Complementary Accessory"), and quick cart additions.
+ */
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronDown, ChevronUp, ShoppingCart, Heart, Star, Sparkles, Check } from 'lucide-react';
@@ -6,6 +15,13 @@ import { useWishlist } from '../context/WishlistContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getProductImageUrl, handleImageError } from '../utils/imageHelper.js';
 
+/**
+ * Recommendation card with graph score pill and expandable explanation list.
+ *
+ * @param {Object} props
+ * @param {Object} props.rec - Recommendation item data (product, score, reasons, product_info)
+ * @param {string} [props.contextLabel] - Section label (e.g. "Frequently Bought Together")
+ */
 export default function RecommendationCard({ rec, contextLabel }) {
   const navigate = useNavigate();
   const { addToCart } = useCart();

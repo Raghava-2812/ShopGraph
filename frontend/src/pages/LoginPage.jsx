@@ -1,7 +1,18 @@
+/**
+ * ShopGraph - Customer Login Authentication Page
+ * File: frontend/src/pages/LoginPage.jsx
+ *
+ * User sign-in interface validating email and password credentials against
+ * the `/auth/login` endpoint, storing the JWT bearer token, and updating session context.
+ */
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+/**
+ * Authentication sign-in form page component.
+ */
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -9,6 +20,10 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Submit credentials to login API and transition to home page upon success.
+   * @param {React.FormEvent} e
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);

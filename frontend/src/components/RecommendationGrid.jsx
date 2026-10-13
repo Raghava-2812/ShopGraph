@@ -1,7 +1,24 @@
+/**
+ * ShopGraph - Recommendation Grid Component
+ * File: frontend/src/components/RecommendationGrid.jsx
+ *
+ * Renders a responsive multi-column grid of recommendation cards corresponding to
+ * an anchor purchased product. Includes section counter and visual indicators.
+ */
+
 import React from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import RecommendationCard from './RecommendationCard.jsx';
 
+/**
+ * Grid layout for graph-driven recommendation results.
+ *
+ * @param {Object} props
+ * @param {string} props.purchasedProduct - Seed product name
+ * @param {Array<Object>} [props.recommendations=[]] - Ranked recommendation list
+ * @param {Function} [props.onViewExplanation] - Callback to view graph explanation modal
+ * @param {Function} [props.onProductClick] - Callback when clicking a recommendation
+ */
 export default function RecommendationGrid({
   purchasedProduct,
   recommendations = [],

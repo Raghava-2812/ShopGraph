@@ -1,3 +1,18 @@
+/**
+ * ShopGraph - Main Application Component & Route Configuration
+ * File: frontend/src/App.jsx
+ *
+ * Configures client-side routing via React Router DOM and wraps routes
+ * inside top-level Context Providers (Auth, Cart, Wishlist).
+ *
+ * Provider hierarchy:
+ *   BrowserRouter
+ *     └─ AuthProvider       (Manages user authentication & JWT tokens)
+ *          └─ CartProvider   (Manages cart line items, pricing & events)
+ *               └─ WishlistProvider (Manages saved items & optimistic updates)
+ *                    └─ Routes
+ */
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
@@ -16,11 +31,24 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 
+/**
+ * Standard Application Shell Layout
+ *
+ * Provides a sticky navigation header, main content slot, and shared footer.
+ *
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Route component to render in the main slot
+ */
 function Layout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Global Navigation Bar */}
       <Navbar />
+
+      {/* Primary Page Content */}
       <main>{children}</main>
+
+      {/* Global Application Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 mt-16">
         <div className="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
           ShopGraph — Knowledge Graph Powered E-Commerce · Neo4j · FastAPI · React
@@ -30,6 +58,9 @@ function Layout({ children }) {
   );
 }
 
+/**
+ * Root Application Router Component
+ */
 export default function App() {
   return (
     <BrowserRouter>
@@ -37,7 +68,7 @@ export default function App() {
         <CartProvider>
           <WishlistProvider>
             <Routes>
-              {/* Pages with Navbar */}
+              {/* Main Storefront Routes (wrapped in standard Layout) */}
               <Route path="/" element={<Layout><HomePage /></Layout>} />
               <Route path="/products" element={<Layout><ProductsPage /></Layout>} />
               <Route path="/products/:productName" element={<Layout><ProductDetailPage /></Layout>} />
@@ -47,7 +78,8 @@ export default function App() {
               <Route path="/checkout" element={<Layout><CheckoutPage /></Layout>} />
               <Route path="/orders" element={<Layout><OrdersPage /></Layout>} />
               <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-              {/* Auth pages - no navbar */}
+
+              {/* Authentication Routes (clean minimal layout without Navbar) */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
             </Routes>

@@ -1,3 +1,14 @@
+/**
+ * ShopGraph - Product Detail Page (PDP)
+ * File: frontend/src/pages/ProductDetailPage.jsx
+ *
+ * Comprehensive product detail view featuring:
+ *   - Rich knowledge graph entity properties (Category, Brand, Specs, Use Cases)
+ *   - Automated VIEW behavioral telemetry event emission
+ *   - Multi-category recommendation sections (Frequently Bought Together, Compatible Items, Similar Products)
+ *   - Stock indicators, warranty badges, and cart/wishlist interaction buttons
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -21,6 +32,9 @@ import { useWishlist } from '../context/WishlistContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getProductImageUrl, handleImageError } from '../utils/imageHelper.js';
 
+/**
+ * Product Detail Page Component
+ */
 export default function ProductDetailPage() {
   const { productName } = useParams();
   const navigate = useNavigate();
@@ -28,19 +42,23 @@ export default function ProductDetailPage() {
   const { addToCart, fetchCart } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
+  // Decode URI-encoded product name parameter from URL path
   const decodedName = decodeURIComponent(productName);
 
+  // Product entity state
   const [product, setProduct] = useState(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [productError, setProductError] = useState(null);
 
+  // Recommendations state
   const [recData, setRecData] = useState(null);
   const [loadingRecs, setLoadingRecs] = useState(false);
 
+  // Cart action state
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  // Fetch product details
+  // Fetch product graph details and record VIEW telemetry event
   useEffect(() => {
     setLoadingProduct(true);
     setProductError(null);

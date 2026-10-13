@@ -1,6 +1,28 @@
+/**
+ * ShopGraph - Product Selector & Graph Query Form
+ * File: frontend/src/components/ProductSelector.jsx
+ *
+ * Interactive input control enabling the user to choose an anchor purchased product,
+ * configure recommendation count (top_k), and trigger graph traversal analysis.
+ */
+
 import React from 'react';
 import { ShoppingBag, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Info } from 'lucide-react';
 
+/**
+ * Product selector form with Top-K limit dropdown and submission triggers.
+ *
+ * @param {Object} props
+ * @param {Array<Object|string>} props.products - Available catalog products
+ * @param {string} props.selectedProduct - Currently selected product name
+ * @param {Function} props.onSelectProduct - Selection change callback
+ * @param {Function} props.onGetRecommendations - Form submit callback to trigger analysis
+ * @param {boolean} [props.loading=false] - Whether graph recommendation query is active
+ * @param {number} [props.topK=5] - Number of recommendations to retrieve
+ * @param {Function} [props.onChangeTopK] - Top-k value update callback
+ * @param {Function} [props.onViewProductDetails] - Callback to open detailed graph modal
+ * @param {boolean} [props.usingFallback=false] - True if operating on static fallback data
+ */
 export default function ProductSelector({
   products = [],
   selectedProduct,
@@ -12,6 +34,10 @@ export default function ProductSelector({
   onViewProductDetails,
   usingFallback = false,
 }) {
+  /**
+   * Intercept form submit and fire recommendations generator callback.
+   * @param {React.FormEvent} e
+   */
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedProduct && !loading) {

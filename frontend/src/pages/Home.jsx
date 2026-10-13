@@ -1,3 +1,15 @@
+/**
+ * ShopGraph - Interactive Graph Explorer & Demo Home Page
+ * File: frontend/src/pages/Home.jsx
+ *
+ * Dedicated interactive visual lab page showcasing:
+ *   - Anchor product dropdown selection & Top-K parameter slider
+ *   - Live API health check and fallback catalog failover
+ *   - Interactive Knowledge Graph SVG diagram rendering
+ *   - Transparent multi-criteria recommendation scoring grid
+ *   - Explainability evidence modal dialog
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar.jsx';
 import ProductSelector from '../components/ProductSelector.jsx';
@@ -11,6 +23,9 @@ import ErrorState from '../components/ErrorState.jsx';
 import { getProducts, getRecommendations, getProductDetails, getHealth } from '../services/api.js';
 import { FALLBACK_PRODUCTS } from '../data/fallbackProducts.js';
 
+/**
+ * Interactive Knowledge Graph Recommendation Explorer Component
+ */
 export default function Home() {
   // Products catalog state
   const [products, setProducts] = useState([]);

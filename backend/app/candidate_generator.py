@@ -1,13 +1,22 @@
 """
-ShopGraph - Candidate Generator
+ShopGraph - Knowledge Graph Candidate Generator
 app/candidate_generator.py
 
-Queries Neo4j to find candidate products for recommendation.
-Uses four discovery strategies:
-  A. Direct relationships (COMPATIBLE_WITH, ACCESSORY, WORKS_WITH, SIMILAR_TO)
-  B. Shared features
-  C. Shared use cases
-  D. Same category (similar products)
+This module queries the Neo4j Knowledge Graph to find candidate products
+for recommendations based on a seed/purchased product.
+
+Candidate Discovery Strategies:
+  A. Direct Graph Relationships:
+     - COMPATIBLE_WITH: Hardware/accessories explicitly verified to work together.
+     - ACCESSORY: Complementary add-on products (e.g. mouse for a laptop).
+     - WORKS_WITH: Functional synergy (e.g. docking station for a laptop).
+     - SIMILAR_TO: Alternative or competitor products in the same domain.
+  B. Shared Features:
+     - Products that have matching Feature nodes (e.g. USB-C, 4K Display, ANC).
+  C. Shared Use Cases:
+     - Products sharing target user scenarios (e.g. Remote Work, Gaming, Video Editing).
+  D. Same Category:
+     - Products belonging to the identical Category node (substitutes / alternatives).
 """
 
 from dataclasses import dataclass, field
@@ -16,7 +25,15 @@ from app.database import Neo4jConnection
 
 @dataclass
 class CandidateInfo:
-    """Holds a candidate product and the signals that led to its discovery."""
+    """Encapsulates a candidate product and the graph signals discovered for it.
+    
+    Attributes:
+        name (str): Product identifier name.
+        direct_relationships (list[str]): Types of direct relationships pointing to/from the seed product.
+        shared_features (list[str]): Feature node names shared in common with the seed product.
+        shared_use_cases (list[str]): UseCase node names shared in common with the seed product.
+        same_category (bool): True if candidate shares the same Category node as the seed product.
+    """
 
     name: str
     direct_relationships: list[str] = field(default_factory=list)
@@ -26,20 +43,26 @@ class CandidateInfo:
 
 
 class CandidateGenerator:
-    """
-    Traverses the Neo4j knowledge graph to find candidate products
-    that could be recommended alongside a given purchased product.
-    """
+    """Traverses the Neo4j knowledge graph to discover candidate products for recommendation."""
 
     def __init__(self, db: Neo4jConnection) -> None:
+        """Initialize the generator with an active database connection.
+        
+        Args:
+            db (Neo4jConnection): Database connection instance.
+        """
         self.db = db
 
-    # ── A. Direct Relationships ──────────────────────────────────────────────
+    # ── Strategy A: Direct Graph Relationships ────────────────────────────────
 
     def get_direct_candidates(self, product_name: str) -> dict[str, list[str]]:
-        """
-        Find products directly connected via graph relationships.
-        Returns a dict: {product_name -> [relationship_types]}
+        """Query direct graph edges (COMPATIBLE_WITH, ACCESSORY, WORKS_WITH, SIMILAR_TO).
+        
+        Args:
+            product_name (str): Seed product name.
+
+        Returns:
+            dict[str, list[str]]: Mapping from candidate product name to list of relationship types.
         """
         query = """
         MATCH (p:Product {name: $name})
@@ -55,12 +78,16 @@ class CandidateGenerator:
             result.setdefault(candidate, []).append(rel)
         return result
 
-    # ── B. Shared Features ───────────────────────────────────────────────────
+    # ── Strategy B: Shared Features ───────────────────────────────────────────
 
     def get_feature_candidates(self, product_name: str) -> dict[str, list[str]]:
-        """
-        Find products that share at least one feature with the input product.
-        Returns a dict: {product_name -> [shared_feature_names]}
+        """Find candidate products sharing at least one Feature node with the input product.
+        
+        Args:
+            product_name (str): Seed product name.
+
+        Returns:
+            dict[str, list[str]]: Mapping from candidate product name to list of shared feature names.
         """
         query = """
         MATCH (p:Product {name: $name})-[:HAS_FEATURE]->(f:Feature)
@@ -71,12 +98,16 @@ class CandidateGenerator:
         rows = self.db.run_query(query, {"name": product_name})
         return {row["candidate"]: row["shared_features"] for row in rows}
 
-    # ── C. Shared Use Cases ──────────────────────────────────────────────────
+    # ── Strategy C: Shared Use Cases ──────────────────────────────────────────
 
     def get_use_case_candidates(self, product_name: str) -> dict[str, list[str]]:
-        """
-        Find products that share at least one use case with the input product.
-        Returns a dict: {product_name -> [shared_use_case_names]}
+        """Find candidate products sharing at least one UseCase node with the input product.
+        
+        Args:
+            product_name (str): Seed product name.
+
+        Returns:
+            dict[str, list[str]]: Mapping from candidate product name to list of shared use-case names.
         """
         query = """
         MATCH (p:Product {name: $name})-[:USED_FOR]->(u:UseCase)
@@ -87,12 +118,16 @@ class CandidateGenerator:
         rows = self.db.run_query(query, {"name": product_name})
         return {row["candidate"]: row["shared_use_cases"] for row in rows}
 
-    # ── D. Same Category ─────────────────────────────────────────────────────
+    # ── Strategy D: Same Category ─────────────────────────────────────────────
 
     def get_same_category_candidates(self, product_name: str) -> list[str]:
-        """
-        Find products in the same category as the input product.
-        Useful for surfacing alternatives.
+        """Find products belonging to the same Category node (substitutes/alternatives).
+        
+        Args:
+            product_name (str): Seed product name.
+
+        Returns:
+            list[str]: List of candidate product names in the same category.
         """
         query = """
         MATCH (p:Product {name: $name})-[:BELONGS_TO]->(cat:Category)
@@ -103,35 +138,36 @@ class CandidateGenerator:
         rows = self.db.run_query(query, {"name": product_name})
         return [row["candidate"] for row in rows]
 
-    # ── Combined ─────────────────────────────────────────────────────────────
+    # ── Aggregated Multi-Strategy Candidate Generation ────────────────────────
 
     def generate_candidates(self, product_name: str) -> dict[str, CandidateInfo]:
-        """
-        Run all four discovery strategies and merge results.
+        """Execute all four graph discovery strategies and consolidate signals into CandidateInfo objects.
 
         Args:
-            product_name: The exact name of the purchased product.
+            product_name (str): The exact name of the purchased/context product.
 
         Returns:
-            A dict mapping candidate product name → CandidateInfo.
+            dict[str, CandidateInfo]: Mapping of candidate product names to their accumulated graph signals.
         """
-        direct   = self.get_direct_candidates(product_name)
+        # Execute individual traversal queries
+        direct = self.get_direct_candidates(product_name)
         features = self.get_feature_candidates(product_name)
         use_cases = self.get_use_case_candidates(product_name)
         same_cat = set(self.get_same_category_candidates(product_name))
 
-        # Collect every unique candidate name
+        # Union of all candidate names surfaced by any strategy
         all_names: set[str] = (
             set(direct.keys())
             | set(features.keys())
             | set(use_cases.keys())
             | same_cat
         )
-        # Remove the source product itself (safety check)
+        # Exclude the seed product itself from candidate recommendations
         all_names.discard(product_name)
 
+        # Build structured signal containers in deterministic order
         candidates: dict[str, CandidateInfo] = {}
-        for name in all_names:
+        for name in sorted(all_names):
             candidates[name] = CandidateInfo(
                 name=name,
                 direct_relationships=direct.get(name, []),
@@ -141,3 +177,4 @@ class CandidateGenerator:
             )
 
         return candidates
+

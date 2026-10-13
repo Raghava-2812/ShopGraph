@@ -1,6 +1,20 @@
+/**
+ * ShopGraph - Loading State & Graph Traversal Indicator
+ * File: frontend/src/components/LoadingState.jsx
+ *
+ * Visual loading skeleton shown while Neo4j graph traversal and candidate
+ * scoring algorithms execute on the backend.
+ */
+
 import React from 'react';
 import { Loader2, Share2 } from 'lucide-react';
 
+/**
+ * Loading indicator with pulsing graph icon and skeleton cards.
+ *
+ * @param {Object} props
+ * @param {string} [props.message] - Custom loading status message
+ */
 export default function LoadingState({ message = 'Finding products from the knowledge graph...' }) {
   return (
     <div className="my-12 py-16 px-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col items-center justify-center text-center">
@@ -18,7 +32,7 @@ export default function LoadingState({ message = 'Finding products from the know
         Traversing Neo4j relationship paths across categories, features, direct compatibility, and use cases...
       </p>
 
-      {/* Skeleton cards */}
+      {/* Skeleton cards showing content placeholders */}
       <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 opacity-60">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-44 rounded-xl bg-slate-100 border border-slate-200 animate-pulse p-4 flex flex-col justify-between">

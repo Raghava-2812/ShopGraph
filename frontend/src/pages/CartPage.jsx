@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Shopping Cart & Cross-Sell Page
+ * File: frontend/src/pages/CartPage.jsx
+ *
+ * Full shopping cart view displaying active line items, quantity modifiers,
+ * pricing subtotal calculations, and cart-tailored cross-sell recommendations
+ * queried dynamically via `/recommendations/cart`.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
@@ -7,6 +16,9 @@ import { recommendationsAPI } from '../services/api.js';
 import RecommendationSection from '../components/RecommendationSection.jsx';
 import { getProductImageUrl, handleImageError } from '../utils/imageHelper.js';
 
+/**
+ * Shopping cart page with line item controls and graph cross-sell recommendations.
+ */
 export default function CartPage() {
   const { user } = useAuth();
   const { cart, fetchCart, removeFromCart, updateQuantity, loading } = useCart();

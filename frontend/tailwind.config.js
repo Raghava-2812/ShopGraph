@@ -1,4 +1,12 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * ShopGraph - Tailwind CSS Configuration
+ * File: frontend/tailwind.config.js
+ *
+ * Configures HTML and JSX file paths for tree-shaking, alongside
+ * custom theme palette extensions (brand blues).
+ *
+ * @type {import('tailwindcss').Config}
+ */
 export default {
   content: [
     "./index.html",

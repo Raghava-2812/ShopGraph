@@ -1,6 +1,28 @@
+/**
+ * ShopGraph - Interactive Knowledge Graph Subgraph Visualizer
+ * File: frontend/src/components/KnowledgeGraph.jsx
+ *
+ * Renders an interactive SVG node-link diagram illustrating graph schema
+ * relationships between the seed product, features, use cases, and recommended products.
+ *
+ * Visualized Node Types:
+ *   - Product (Blue / Emerald)
+ *   - Feature (Purple)
+ *   - Use Case (Amber)
+ *   - Category / Brand
+ */
+
 import React from 'react';
 import { Network, ArrowDown, Cpu, Sparkles, Layers, Box, Tag, Compass } from 'lucide-react';
 
+/**
+ * Knowledge graph SVG topology visualization section.
+ *
+ * @param {Object} props
+ * @param {string} props.selectedProduct - Selected anchor product
+ * @param {Array<Object>} [props.recommendations=[]] - Recommendations list
+ * @param {Object} [props.productDetails] - Graph properties (features, use cases) of anchor product
+ */
 export default function KnowledgeGraph({
   selectedProduct,
   recommendations = [],
@@ -9,7 +31,7 @@ export default function KnowledgeGraph({
   const topRec = recommendations.length > 0 ? recommendations[0] : null;
   const secondRec = recommendations.length > 1 ? recommendations[1] : null;
 
-  // Derive nodes from productDetails or fallback
+  // Derive dynamic node labels from fetched productDetails or sensible fallbacks
   const features = productDetails?.features || ['USB-C', 'Bluetooth', 'WiFi'];
   const useCases = productDetails?.use_cases || ['Office Work', 'Work From Home'];
 

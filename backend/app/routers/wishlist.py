@@ -1,12 +1,12 @@
 """
-ShopGraph - Wishlist Router
+ShopGraph - User Wishlist Router
 app/routers/wishlist.py
 
-Routes:
-  GET    /wishlist
-  POST   /wishlist/{product_name}
-  DELETE /wishlist/{product_name}
-  GET    /wishlist/check/{product_name}
+This module manages customer saved items / wishlists:
+  - GET    /wishlist: Retrieves all saved items, enriching them with full product catalog data from Neo4j.
+  - POST   /wishlist/{name}: Saves a product and logs a WISHLIST event for recommendation scoring.
+  - DELETE /wishlist/{name}: Removes a product and logs a REMOVE_FROM_WISHLIST event.
+  - GET    /wishlist/check/{name}: Verifies whether a product is currently saved by the active customer.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,7 +23,20 @@ def get_wishlist(
     db: Session = Depends(get_sqlite_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Retrieve all wishlisted products for the current user."""
+    """Retrieve all wishlisted products for the authenticated user, enriched with graph data.
+
+    Workflow:
+      1. Query WishlistItem table for user's saved product names, ordered by date added descending.
+      2. Query Neo4j Knowledge Graph in batch to attach current price, ratings, images, and category.
+      3. Return preserved chronological ordering.
+
+    Args:
+        db (Session): SQLite database session.
+        current_user (User): Authenticated customer.
+
+    Returns:
+        dict: Total count and list of enriched product items.
+    """
     items = db.query(WishlistItem).filter(
         WishlistItem.user_id == current_user.id
     ).order_by(WishlistItem.added_at.desc()).all()
@@ -44,7 +57,7 @@ def get_wishlist(
                 """,
                 {"names": product_names},
             )
-            # Retain insertion order
+            # Retain user's insertion order
             row_map = {r["name"]: r for r in rows}
             products_info = [row_map.get(name) for name in product_names if name in row_map]
 
@@ -60,7 +73,16 @@ def add_to_wishlist(
     db: Session = Depends(get_sqlite_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Add a product to the user's wishlist and track the event."""
+    """Add a product to the user's saved wishlist and record a WISHLIST telemetry event.
+
+    Args:
+        product_name (str): Title of the product to save.
+        db (Session): Database session.
+        current_user (User): Authenticated customer.
+
+    Returns:
+        dict: Status ('added' or 'already_in_wishlist') and product name.
+    """
     existing = db.query(WishlistItem).filter(
         WishlistItem.user_id == current_user.id,
         WishlistItem.product_name == product_name,
@@ -72,7 +94,7 @@ def add_to_wishlist(
     item = WishlistItem(user_id=current_user.id, product_name=product_name)
     db.add(item)
 
-    # Track WISHLIST event
+    # Ingest WISHLIST event to boost user interest scoring for this category/product
     event = UserEvent(
         user_id=current_user.id,
         event_type="WISHLIST",
@@ -90,7 +112,19 @@ def remove_from_wishlist(
     db: Session = Depends(get_sqlite_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Remove a product from the user's wishlist."""
+    """Remove a product from the user's wishlist and log a REMOVE_FROM_WISHLIST event.
+
+    Args:
+        product_name (str): Title of the product to remove.
+        db (Session): Database session.
+        current_user (User): Authenticated customer.
+
+    Returns:
+        dict: Status confirmation and product name.
+
+    Raises:
+        HTTPException: 404 Not Found if product is not in wishlist.
+    """
     item = db.query(WishlistItem).filter(
         WishlistItem.user_id == current_user.id,
         WishlistItem.product_name == product_name,
@@ -119,10 +153,20 @@ def check_wishlist(
     db: Session = Depends(get_sqlite_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Check if a product is in the user's wishlist."""
+    """Check whether a specific product is currently saved in the customer's wishlist.
+
+    Args:
+        product_name (str): Target product name.
+        db (Session): Database session.
+        current_user (User): Authenticated customer.
+
+    Returns:
+        dict: Boolean `is_wishlisted` flag and product name.
+    """
     item = db.query(WishlistItem).filter(
         WishlistItem.user_id == current_user.id,
         WishlistItem.product_name == product_name,
     ).first()
 
     return {"is_wishlisted": item is not None, "product_name": product_name}
+

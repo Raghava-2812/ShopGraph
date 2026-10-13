@@ -1,6 +1,24 @@
+/**
+ * ShopGraph - Recommendation Section Component
+ * File: frontend/src/components/RecommendationSection.jsx
+ *
+ * Generic recommendation container used on pages (e.g. Home, Product Detail, Cart).
+ * Supports loading skeletons, contextual section titles, and recommendation cards.
+ */
+
 import React from 'react';
 import RecommendationCard from './RecommendationCard.jsx';
 
+/**
+ * Reusable recommendation shelf / section.
+ *
+ * @param {Object} props
+ * @param {string} props.title - Shelf title heading (e.g. "Similar Products")
+ * @param {Array<Object>} props.recommendations - List of recommendation items
+ * @param {boolean} [props.loading] - Whether shelf items are currently loading
+ * @param {string|null} [props.emptyMessage] - Fallback message if no items match
+ * @param {string} [props.contextLabel] - Category/relationship badge shown on cards
+ */
 export default function RecommendationSection({ title, recommendations, loading, emptyMessage, contextLabel }) {
   if (loading) {
     return (

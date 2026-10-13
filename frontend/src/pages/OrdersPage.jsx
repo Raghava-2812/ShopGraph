@@ -1,9 +1,20 @@
+/**
+ * ShopGraph - Customer Order History Page
+ * File: frontend/src/pages/OrdersPage.jsx
+ *
+ * Displays chronological list of historical orders, order status badges (PENDING,
+ * COMPLETED), timestamp dates, purchased line items, and total prices.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Package, Clock } from 'lucide-react';
 import { ordersAPI } from '../services/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
+/**
+ * Historical customer orders listing page.
+ */
 export default function OrdersPage() {
   const { user } = useAuth();
   const navigate = useNavigate();

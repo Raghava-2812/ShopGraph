@@ -1,24 +1,24 @@
 """
-ShopGraph - Recommendations Router
+ShopGraph - Recommendations Router & Multi-Strategy Inference Engine
 app/routers/recommendations.py
 
-Routes:
-  GET /recommendations                                - Personalized for logged-in user / Home page
-  GET /recommendations/product/{name}                 - Product-context recommendations
-  GET /recommendations/cart                           - Cart-based recommendations ("Complete Your Setup")
-  GET /recommendations/recently-viewed                - User's recently viewed products
-  GET /recommendations/category/{category_name}       - Category top picks + accessories
+This module contains the primary recommendation endpoints of the ShopGraph platform:
+  - GET /recommendations: Personalized homepage feed based on user behavior affinity & graph edges.
+  - GET /recommendations/product/{name}: Context-aware product page sections (Related, Compatible, Accessories).
+  - GET /recommendations/cart: 'Complete Your Setup' cart-based cross-selling graph traversals.
+  - GET /recommendations/recently-viewed: Chronological history of recently viewed products.
+  - GET /recommendations/category/{name}: Curated top picks and cross-category accessories.
 
-Scoring formula (transparent, explainable, no ML):
-  Final Score = (
-      relationship_score  * settings.WEIGHT_RELATIONSHIP   (0.30)
-    + feature_score       * settings.WEIGHT_FEATURE        (0.20)
-    + category_score      * settings.WEIGHT_CATEGORY       (0.15)
-    + use_case_score      * settings.WEIGHT_USE_CASE       (0.10)
-    + user_interest_score * settings.WEIGHT_USER_INTEREST  (0.15)
-    + popularity_score    * settings.WEIGHT_POPULARITY     (0.05)
-    + recency_score       * settings.WEIGHT_RECENCY        (0.05)
-  ) * 100
+Explainable 7-Dimension Transparent Scoring Formula (0–100 Scale):
+  Score = (
+      relationship_score  × WEIGHT_RELATIONSHIP   (0.30)  [COMPATIBLE_WITH, ACCESSORY, WORKS_WITH, SIMILAR_TO]
+    + feature_score       × WEIGHT_FEATURE        (0.20)  [Shared hardware & software specification overlap]
+    + category_score      × WEIGHT_CATEGORY       (0.15)  [Category alignment & substitute alternatives]
+    + use_case_score      × WEIGHT_USE_CASE       (0.10)  [Shared application scenarios (Gaming, Office, etc.)]
+    + user_interest_score × WEIGHT_USER_INTEREST  (0.15)  [Personal behavioral signals (views, search, wishlist)]
+    + popularity_score    × WEIGHT_POPULARITY     (0.05)  [Rating quality and review volume baseline]
+    + recency_score       × WEIGHT_RECENCY        (0.05)  [Catalog freshness factor]
+  ) × 100
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -37,10 +37,27 @@ from app.explanation import generate_reasons
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
 
-# ── User Behavior Helper ──────────────────────────────────────────────────────
+# ── User Behavior Signal Extraction ───────────────────────────────────────────
 
 def get_user_behavior(user_id: int, db: Session, days: int = 30) -> dict:
-    """Fetch user behavior signals from SQLite within the last `days` days."""
+    """Extract and aggregate behavioral telemetry signals for a customer within the last `days` window.
+
+    Extracts:
+      - viewed: Deduplicated list of viewed product names (newest first).
+      - viewed_categories: All categories associated with view events (for category affinity ranking).
+      - searched: Recent search keywords.
+      - carted: Products added to cart.
+      - purchased: Previously bought products (used for exclusion from recommendations).
+      - wishlisted: Products currently saved in wishlist.
+
+    Args:
+        user_id (int): Customer primary key ID.
+        db (Session): SQLite database session.
+        days (int): Time horizon in days (default: 30).
+
+    Returns:
+        dict: Aggregated behavioral signal containers.
+    """
     since = datetime.now(timezone.utc) - timedelta(days=days)
     events = db.query(UserEvent).filter(
         UserEvent.user_id == user_id,
@@ -85,7 +102,15 @@ def get_user_behavior(user_id: int, db: Session, days: int = 30) -> dict:
 # ── Product Info Batch Enrichment ─────────────────────────────────────────────
 
 def enrich_products_info(product_names: list[str], neo4j_db) -> dict[str, dict]:
-    """Fetch full rich product data from the Knowledge Graph for a list of names."""
+    """Batch-fetch complete product records and attributes from the Knowledge Graph.
+
+    Args:
+        product_names (list[str]): List of product name strings to query.
+        neo4j_db: Active Neo4j connection instance.
+
+    Returns:
+        dict[str, dict]: Mapping of product_name -> full product dictionary.
+    """
     if not product_names:
         return {}
     query = """
@@ -101,6 +126,7 @@ def enrich_products_info(product_names: list[str], neo4j_db) -> dict[str, dict]:
     return {r["name"]: r for r in rows}
 
 
+
 # ── Scoring Function ──────────────────────────────────────────────────────────
 
 def calculate_transparent_score(
@@ -110,8 +136,34 @@ def calculate_transparent_score(
     context_product_data: Optional[dict],
     user_behavior: Optional[dict],
 ) -> tuple[float, list[str]]:
-    """
-    Calculate 7-dimension transparent score based on graph signals and user behavior.
+    """Compute 7-dimension transparent score (0.0 to 99.5) and human-readable explanation reasons.
+
+    Dimension Evaluation:
+      1. Relationship Score (0.0 to 1.0, weight: 0.30):
+         Evaluates direct edges: COMPATIBLE_WITH (1.0), ACCESSORY (1.0), WORKS_WITH (0.9), SIMILAR_TO (0.7).
+      2. Feature Score (0.0 to 1.0, weight: 0.20):
+         Ratio of shared hardware/software specifications.
+      3. Category Score (0.0 to 1.0, weight: 0.15):
+         Awards 0.8 if candidate is in the identical product category.
+      4. Use Case Score (0.0 to 1.0, weight: 0.10):
+         Shared target usage scenarios (Gaming, Office, Editing).
+      5. User Interest Score (0.0 to 1.0, weight: 0.15):
+         Personalization bonus from user's top categories (+0.5), search keyword matches (+0.4),
+         and wishlist saves (+0.6).
+      6. Popularity Score (0.0 to 1.0, weight: 0.05):
+         Composite based on customer rating (70%) and review volume (30%).
+      7. Recency Score (0.0 to 1.0, weight: 0.05):
+         Baseline freshness factor (0.7).
+
+    Args:
+        candidate_name (str): Title of the candidate product.
+        candidate_info (CandidateInfo | None): Graph signals discovered for the candidate.
+        candidate_data (dict): Catalog record for candidate (rating, category, reviews).
+        context_product_data (dict | None): Seed product attributes.
+        user_behavior (dict | None): Authenticated customer's interaction profile.
+
+    Returns:
+        tuple[float, list[str]]: (final_score, deduplicated_reasons_list).
     """
     reasons = []
 
@@ -221,14 +273,25 @@ def recommend_for_product(
     current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_sqlite_db),
 ):
+    """Generate multi-section, context-aware product page recommendations.
+
+    Result Sections:
+      - related_products: Product-centric matches (same category/brand or SIMILAR_TO).
+      - recommended_for_you: Top scored personalized candidates for this user context.
+      - because_you_viewed: Dynamic category alternatives under 'Because You Viewed [Product]'.
+      - compatible_with: Products connected via COMPATIBLE_WITH or WORKS_WITH edges.
+      - accessories: Direct accessory products connected via ACCESSORY edges.
+
+    Args:
+        product_name (str): Title of product being browsed.
+        top_k (int): Limit per recommendation section (default: 6).
+        current_user (User | None): Optional user for personalization.
+        db (Session): Database session.
+
+    Returns:
+        dict: Payload structured into distinct recommendation categories.
     """
-    Dynamic product-page recommendations divided into clearly distinct sections:
-      - Related Products (product-centric: same category, brand, features, alternatives)
-      - Recommended Products (user + context-centric)
-      - Because You Viewed [Current Product] (dynamic category alternatives)
-      - Compatible With (graph relationships)
-      - Recommended Accessories (graph relationships)
-    """
+
     with get_db() as neo4j_db:
         # 1. Fetch current product data
         prod_rows = neo4j_db.run_query(
@@ -348,7 +411,16 @@ def get_recently_viewed(
     db: Session = Depends(get_sqlite_db),
     limit: int = Query(default=8, ge=1, le=20),
 ):
-    """Return recently viewed products for the authenticated user."""
+    """Retrieve recently viewed products for the authenticated user, enriched with catalog details.
+
+    Args:
+        current_user (User | None): Authenticated customer, or None if guest.
+        db (Session): Database session.
+        limit (int): Maximum items to return (default: 8).
+
+    Returns:
+        dict: List of recently viewed full product records (empty for guests).
+    """
     if not current_user:
         return {"items": []}
 
@@ -382,9 +454,20 @@ def recommend_for_cart(
     current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_sqlite_db),
 ):
-    """
-    Get 'Complete Your Setup' recommendations based on all products in user's cart
-    using Knowledge Graph ACCESSORY and COMPATIBLE_WITH traversals.
+    """'Complete Your Setup' cross-selling recommendations based on items in the customer's cart.
+
+    Algorithm:
+      1. Traverse ACCESSORY and COMPATIBLE_WITH edges for each product in the active cart.
+      2. Exclude products already residing in the cart or previously purchased.
+      3. Boost items that complement multiple items simultaneously across the cart.
+      4. Return ranked candidates with explicit 'Complements your [Product]' explanations.
+
+    Args:
+        current_user (User | None): Active customer session.
+        db (Session): Database session.
+
+    Returns:
+        dict: Products currently in cart and ranked complementary recommendations.
     """
     if not current_user:
         return {"recommendations": [], "message": "Login to see personalized setup recommendations"}
@@ -460,7 +543,15 @@ def recommend_for_cart(
 
 @router.get("/category/{category_name}")
 def category_recommendations(category_name: str, top_k: int = 6):
-    """Return top picks in a category and popular accessories for that category."""
+    """Surfaces top rated products in a category alongside cross-category complementary accessories.
+
+    Args:
+        category_name (str): Product category title.
+        top_k (int): Limit per category section (default: 6).
+
+    Returns:
+        dict: Top picks in category and popular accessories from other categories.
+    """
     with get_db() as neo4j_db:
         # Category products
         cat_rows = neo4j_db.run_query("MATCH (p:Product)", {"category": category_name})
@@ -488,20 +579,32 @@ def category_recommendations(category_name: str, top_k: int = 6):
     }
 
 
+
 @router.get("")
 def personalized_recommendations(
     top_k: int = Query(default=8, ge=1, le=20),
     current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_sqlite_db),
 ):
-    """
-    Personalized recommendations for the home page.
-    Automatically detects user category affinity, recent views, and cart additions,
-    returning:
-      - Recommended For You
-      - Recently Viewed
-      - Related To Your Interests (dynamic category top picks, e.g. 'Top Picks for Laptop Lovers')
-      - Trending Products
+    """Personalized homepage recommendation engine with automatic cold-start handling.
+
+    Architecture:
+      - Authenticated Users:
+          * Extracts user behavior telemetry (viewed products, categories, cart actions).
+          * Determines dominant category affinity using frequency counter.
+          * Traverses Knowledge Graph candidates across user's recent browsing items.
+          * Multi-context boost: Items connected to multiple viewed items receive score bonuses.
+          * Returns: 'Recommended For You', 'Recently Viewed', 'Related To Your Interests'
+      - Cold-Start / Anonymous Guests:
+          * Smoothly falls back to curated trending items, category leaders, and popular accessories.
+
+    Args:
+        top_k (int): Maximum items per section (default: 8).
+        current_user (User | None): Optional user from Bearer token.
+        db (Session): Database session.
+
+    Returns:
+        dict: Personalized recommendation sections and behavioral signal metrics.
     """
     with get_db() as neo4j_db:
         # Anonymous / Cold Start Experience

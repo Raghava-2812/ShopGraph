@@ -1,3 +1,11 @@
+/* ============================================================
+ * ShopGraph - Global Stylesheet
+ * File: frontend/src/index.css
+ *
+ * Configures Tailwind CSS core layers, default system font stack,
+ * and minimalist custom scrollbar styling.
+ * ============================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

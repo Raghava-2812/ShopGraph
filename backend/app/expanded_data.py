@@ -1,10 +1,16 @@
 """
-ShopGraph - Expanded Knowledge Graph Dataset
+ShopGraph - Curated Knowledge Graph Dataset & Topology
 app/expanded_data.py
 
-Contains 80+ rich products across 19 categories, 26 brands, 36 features,
-13 use cases, with realistic specifications, pricing, ratings, high-res images,
-and 180+ semantic graph relationships.
+This module contains the primary seed datasets used to initialize both the Neo4j
+Knowledge Graph and the in-memory fallback graph:
+  - CATEGORIES (19 items): Product categories across consumer electronics and accessories.
+  - BRANDS (26 items): Hardware manufacturers and brand country origins.
+  - FEATURES (36 items): Hardware specifications, protocols, and technical features.
+  - USE_CASES (13 items): Real-world workflows (e.g. Video Editing, Competitive Gaming).
+  - PRODUCTS (83 items): Complete e-commerce catalog items with rich attributes (price, specs, rating).
+  - PRODUCT_RELATIONS: Entity mappings (BELONGS_TO, MADE_BY, HAS_FEATURE, USED_FOR).
+  - PRODUCT_PRODUCT_RELATIONS: Product-to-product graph edges (COMPATIBLE_WITH, ACCESSORY, WORKS_WITH, SIMILAR_TO).
 """
 
 CATEGORIES = [

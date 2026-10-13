@@ -1,10 +1,16 @@
 """
-ShopGraph - In-Memory Knowledge Graph Fallback
+ShopGraph - High-Performance In-Memory Knowledge Graph Engine
 app/mock_kg.py
 
-Provides a high-performance in-memory graph representation of the ShopGraph
-Knowledge Graph. Used automatically when Neo4j is offline, unreachable, or
-during local development/testing without an active Neo4j instance.
+This module provides a pure-Python, zero-dependency in-memory graph representation
+of the ShopGraph catalog and its relational topology.
+
+Purpose & Benefits:
+  1. Offline Resilience: Automatically takes over when Neo4j is offline or during cold starts.
+  2. Fast Unit & Integration Testing: Allows test suites to run completely in-memory
+     without requiring an active Docker container or network credentials.
+  3. Cypher Emulation: Evaluates the specific Cypher query patterns used across ShopGraph
+     routers and recommender services, returning identical record formats.
 """
 
 from typing import Any
@@ -20,10 +26,19 @@ from app.kg_loader import (
 
 
 class InMemoryKnowledgeGraph:
-    """In-memory Knowledge Graph that evaluates ShopGraph Cypher queries."""
+    """In-memory graph database engine indexing products and bidirectional semantic relationships.
+    
+    Data Structures:
+      - products: Dict mapping product title -> rich product dict with relationship sets.
+      - categories: Dict mapping category title -> category entity dict.
+      - features: Dict mapping feature name -> feature entity dict.
+      - brands: Dict mapping brand name -> brand entity dict.
+      - use_cases: Dict mapping use-case name -> use-case entity dict.
+    """
 
     def __init__(self):
-        # Index products by name with a full shallow copy
+        """Construct the in-memory graph by loading catalog datasets and resolving graph edges."""
+        # Index products by name with isolated set collections for relationships
         self.products = {}
         for p in PRODUCTS:
             prod_copy = dict(p)
@@ -40,7 +55,7 @@ class InMemoryKnowledgeGraph:
         self.brands = {b["name"]: dict(b) for b in BRANDS}
         self.use_cases = {u["name"]: dict(u) for u in USE_CASES}
 
-        # Load entity relationships
+        # Index product-to-metadata entity relationships
         for src, rel, tgt in PRODUCT_RELATIONS:
             if src in self.products:
                 if rel == "BELONGS_TO":
@@ -52,7 +67,7 @@ class InMemoryKnowledgeGraph:
                 elif rel == "USED_FOR":
                     self.products[src]["use_cases"].add(tgt)
 
-        # Load product-to-product relationships
+        # Index product-to-product compatibility, accessory, and similarity edges
         for src, rel, tgt in PRODUCT_PRODUCT_RELATIONS:
             if src in self.products:
                 if rel == "COMPATIBLE_WITH":
@@ -65,7 +80,14 @@ class InMemoryKnowledgeGraph:
                     self.products[src]["similar_to"].add(tgt)
 
     def _format_product(self, p: dict) -> dict:
-        """Format product record with all rich e-commerce attributes."""
+        """Format an internal product record into a rich JSON-serializable dictionary.
+        
+        Args:
+            p (dict): Raw internal product record.
+
+        Returns:
+            dict: Formatted product object containing pricing, rating, stock, and media metadata.
+        """
         return {
             "name": p.get("name"),
             "slug": p.get("slug", ""),
@@ -85,9 +107,18 @@ class InMemoryKnowledgeGraph:
         }
 
     def run_query(self, query: str, parameters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        """Interpret and execute Cypher query against in-memory graph."""
+        """Interpret and execute Cypher query strings against in-memory graph collections.
+
+        Args:
+            query (str): Cypher query text to match and execute.
+            parameters (dict[str, Any] | None): Named parameters passed with the query.
+
+        Returns:
+            list[dict[str, Any]]: List of dictionary records matching the Cypher query semantics.
+        """
         params = parameters or {}
         q = query.strip()
+
 
         # 1. Count query
         if "count(n)" in q or "count(p)" in q:

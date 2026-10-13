@@ -1,9 +1,20 @@
+/**
+ * ShopGraph - Customer Saved Wishlist Page
+ * File: frontend/src/pages/WishlistPage.jsx
+ *
+ * Dedicated wishlist management page rendering saved products enriched with
+ * knowledge graph features. Provides empty states and quick links back to the catalog.
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 
+/**
+ * Customer wishlist view component.
+ */
 export default function WishlistPage() {
   const { wishlistItems, wishlistCount, loading } = useWishlist();
 

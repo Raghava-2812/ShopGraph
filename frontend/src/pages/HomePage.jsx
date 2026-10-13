@@ -1,3 +1,16 @@
+/**
+ * ShopGraph - Main Storefront Home Page
+ * File: frontend/src/pages/HomePage.jsx
+ *
+ * Primary storefront landing page featuring:
+ *   - Hero showcase highlighting Knowledge Graph benefits
+ *   - Category quick-navigation carousel with customized icons
+ *   - Personalized recommendations feed driven by real-time behavioral telemetry
+ *   - "Recently Viewed" user history shelf
+ *   - "Interest-Aligned" recommendations based on graph clustering
+ *   - Trending products catalog grid
+ */
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { productsAPI, recommendationsAPI } from '../services/api.js';
@@ -20,6 +33,7 @@ import {
   Tv,
 } from 'lucide-react';
 
+// Category emoji icons for visual navigation pills
 const CATEGORY_ICONS = {
   Laptops: '💻',
   'Gaming Laptops': '⚡',
@@ -38,17 +52,23 @@ const CATEGORY_ICONS = {
   Backpacks: '🎒',
 };
 
+/**
+ * Storefront Home Page Component
+ */
 export default function HomePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Catalog category & trending products state
   const [categories, setCategories] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
+
+  // Recommendation engine state
   const [personalizedData, setPersonalizedData] = useState(null);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Fetch categories & trending catalog products
+  // Fetch all graph categories & trending products on mount
   useEffect(() => {
     productsAPI.categories().then(setCategories).catch(console.error);
 

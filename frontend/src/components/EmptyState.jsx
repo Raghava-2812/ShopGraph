@@ -1,6 +1,17 @@
+/**
+ * ShopGraph - Empty State Component
+ * File: frontend/src/components/EmptyState.jsx
+ *
+ * Renders an inviting call-to-action placeholder prompting the user to select
+ * a seed product from the dropdown selector when no recommendations are displayed yet.
+ */
+
 import React from 'react';
 import { PackageSearch, ArrowUp } from 'lucide-react';
 
+/**
+ * Placeholder displayed prior to generating recommendations.
+ */
 export default function EmptyState() {
   return (
     <div className="my-10 py-16 px-6 bg-white rounded-2xl border border-dashed border-slate-300 text-center flex flex-col items-center justify-center">

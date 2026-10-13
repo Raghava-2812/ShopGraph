@@ -1,9 +1,14 @@
 """
-ShopGraph - Load Knowledge Graph
+ShopGraph - Knowledge Graph ETL Loading CLI Script
 scripts/load_kg.py
 
-Loads all nodes and relationships into Neo4j.
-Safe to run multiple times — uses MERGE throughout.
+This script loads the complete ShopGraph Knowledge Graph dataset into Neo4j:
+  - Creates uniqueness constraints
+  - Inserts Category, Feature, Brand, UseCase, and Product nodes
+  - Establishes all semantic and cross-product graph edges
+  - Prints database entity counts and relationship distribution statistics
+
+Safe to run repeatedly (uses MERGE statements).
 
 Usage:
     python scripts/load_kg.py
@@ -13,6 +18,7 @@ import sys
 import os
 import time
 
+# Ensure backend root directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import get_db
@@ -20,7 +26,11 @@ from app.kg_loader import load_all
 
 
 def print_statistics(db) -> None:
-    """Print a summary of what is in the graph after loading."""
+    """Query and display summary count statistics for all node labels and relationship types.
+
+    Args:
+        db: Active database connection.
+    """
     print("\n📊 Knowledge Graph Statistics:")
     print("-" * 40)
 
@@ -48,6 +58,7 @@ def print_statistics(db) -> None:
 
 
 def main() -> None:
+    """Execute the full ETL loading pipeline and output execution statistics."""
     print("=" * 50)
     print("  ShopGraph — Knowledge Graph Loader")
     print("=" * 50)
@@ -74,3 +85,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

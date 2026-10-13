@@ -1,9 +1,10 @@
 """
-ShopGraph - CLI Recommendation Test Script
+ShopGraph - CLI Recommendation Verification Script
 scripts/test_recommendation.py
 
-Demonstrates the recommendation engine from the command line.
-Run this after loading the knowledge graph.
+Demonstrates the Knowledge Graph recommendation engine directly from the command line.
+Queries product candidates, computes transparent multi-factor scores, and prints
+ranked results with their graph-backed explanations.
 
 Usage:
     python scripts/test_recommendation.py
@@ -13,12 +14,13 @@ Usage:
 import sys
 import os
 
+# Ensure backend root directory is in sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import get_db
 from app.recommender import ProductRecommender
 
-# Products to test
+# Default seed products to test when no CLI arguments are supplied
 DEFAULT_TEST_PRODUCTS = [
     "Dell Inspiron 15",
     "HP Pavilion 15",
@@ -27,7 +29,12 @@ DEFAULT_TEST_PRODUCTS = [
 
 
 def print_recommendations(product_name: str, top_k: int = 5) -> None:
-    """Run the recommender and pretty-print results to the terminal."""
+    """Run the recommender for a given product and format the output for terminal viewing.
+
+    Args:
+        product_name (str): Exact title of seed product to query.
+        top_k (int): Number of top recommendations to display (default: 5).
+    """
     print("\n" + "=" * 60)
     print(f"  🛒  Purchased Product: {product_name}")
     print("=" * 60)
@@ -59,7 +66,8 @@ def print_recommendations(product_name: str, top_k: int = 5) -> None:
 
 
 def main() -> None:
-    # Allow overriding from command line
+    """Parse command line arguments or run default recommendation tests."""
+    # Allow overriding target product and top_k from command line
     if len(sys.argv) >= 2:
         product = sys.argv[1]
         top_k = int(sys.argv[2]) if len(sys.argv) >= 3 else 5
@@ -72,3 +80,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

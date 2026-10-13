@@ -1,7 +1,29 @@
+/**
+ * ShopGraph - Recommendation Explainability Modal Panel
+ * File: frontend/src/components/ExplanationPanel.jsx
+ *
+ * Full-detail modal dialog demonstrating the "glass-box" explainability of
+ * the Knowledge Graph recommendation engine.
+ *
+ * Features:
+ *   - Visual ASCII graph traversal diagram representing paths between products
+ *   - Categorized evidence breakdown (Direct Relations, Shared Features, Use Cases)
+ *   - Transparent multi-dimensional scoring explanation
+ */
+
 import React from 'react';
 import { X, Network, CheckCircle2, ShieldCheck, ArrowRight, Share2, Sparkles } from 'lucide-react';
 import ScoreBadge from './ScoreBadge.jsx';
 
+/**
+ * Knowledge graph explainability modal dialog.
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether the modal dialog is currently visible
+ * @param {Function} props.onClose - Dismiss callback
+ * @param {string} props.purchasedProduct - Seed/purchased product name
+ * @param {Object} props.recommendation - Selected recommendation object (score, reasons, product)
+ */
 export default function ExplanationPanel({
   isOpen,
   onClose,
@@ -12,7 +34,7 @@ export default function ExplanationPanel({
 
   const { product, score, reasons = [] } = recommendation;
 
-  // Extract structured reasoning from backend strings
+  // Segment backend explanation strings into distinct graph relationship types
   const directRelationships = [];
   const sharedFeatures = [];
   const useCases = [];

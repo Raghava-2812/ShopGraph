@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Catalog Search Results Page
+ * File: frontend/src/pages/SearchPage.jsx
+ *
+ * Handles keyword queries across products, categories, features, and brands.
+ * Emits SEARCH_PRODUCT telemetry events to enhance real-time recommendation scoring,
+ * and surfaces fallback graph recommendations if no direct products match.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { productsAPI, eventsAPI, recommendationsAPI } from '../services/api.js';
@@ -5,6 +14,9 @@ import ProductCard from '../components/ProductCard.jsx';
 import RecommendationSection from '../components/RecommendationSection.jsx';
 import { Search } from 'lucide-react';
 
+/**
+ * Full-text catalog search page with real-time graph recommendation fallbacks.
+ */
 export default function SearchPage() {
   const location = useLocation();
   const navigate = useNavigate();

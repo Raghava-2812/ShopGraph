@@ -1,24 +1,34 @@
 """
-ShopGraph - Events Router
+ShopGraph - User Behavioral Interaction Events Router
 app/routers/events.py
 
-Routes:
-  POST /events
+This module ingests telemetry on user browsing and shopping behavior:
+  - POST /events: Ingests user actions to drive the personalization scoring dimension.
 
-Records user behavior events:
-  VIEW, SEARCH, ADD_TO_CART, REMOVE_FROM_CART, PURCHASE, WISHLIST
+Tracked Event Types:
+  - VIEW / VIEW_PRODUCT: Customer browsed a product detail page.
+  - SEARCH / SEARCH_PRODUCT: Customer performed a text query.
+  - VIEW_CATEGORY: Customer explored a specific category catalog.
+  - ADD_TO_CART / REMOVE_FROM_CART: Items added or removed from shopping bag.
+  - WISHLIST / WISHLIST_PRODUCT: Items saved to personal wishlist.
+  - PURCHASE / PURCHASE_PRODUCT: Checkout orders placed.
+  - CLICK_RECOMMENDATION: Interactions on recommended product cards.
+
+Normalization:
+  Event names are canonicalized to standard internal representations (e.g. VIEW_PRODUCT -> VIEW)
+  to ensure consistent scoring in the recommendation engine.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from app.sqlite_db import get_sqlite_db, UserEvent
+from app.sqlite_db import get_sqlite_db, UserEvent, User
 from app.auth import get_current_user
-from app.sqlite_db import User
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
+# Set of allowed event names supported by the telemetry receiver
 ALLOWED_EVENTS = {
     "VIEW", "VIEW_PRODUCT",
     "SEARCH", "SEARCH_PRODUCT",
@@ -31,6 +41,7 @@ ALLOWED_EVENTS = {
 
 
 class EventRequest(BaseModel):
+    """Payload schema representing a recorded user action."""
     event_type: str
     product_name: Optional[str] = None
     search_query: Optional[str] = None
@@ -43,8 +54,20 @@ def record_event(
     db: Session = Depends(get_sqlite_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Record a user behavior event."""
-    # Normalize event names
+    """Ingest and record a customer behavioral event in the SQLite database.
+
+    Args:
+        req (EventRequest): Event parameters (event_type, product_name, search_query, category_name).
+        db (Session): SQLAlchemy database session.
+        current_user (User): Authenticated customer associated with the event.
+
+    Returns:
+        dict: Confirmation status and standardized event type.
+
+    Raises:
+        HTTPException: 400 Bad Request if the event type is unapproved.
+    """
+    # Normalize event names to uppercase and strip whitespace
     norm_type = req.event_type.upper().strip()
     if norm_type not in ALLOWED_EVENTS:
         raise HTTPException(
@@ -52,7 +75,7 @@ def record_event(
             detail=f"Invalid event type. Allowed: {', '.join(sorted(ALLOWED_EVENTS))}",
         )
 
-    # Standardize internal representation
+    # Standardize alias event names to internal canonical forms
     std_type = norm_type
     if norm_type == "VIEW_PRODUCT":
         std_type = "VIEW"
@@ -63,6 +86,7 @@ def record_event(
     elif norm_type == "PURCHASE_PRODUCT":
         std_type = "PURCHASE"
 
+    # Persist the event record
     event = UserEvent(
         user_id=current_user.id,
         event_type=std_type,
@@ -73,3 +97,4 @@ def record_event(
     db.add(event)
     db.commit()
     return {"status": "recorded", "event_type": std_type}
+

@@ -1,3 +1,12 @@
+/**
+ * ShopGraph - Global Navigation Bar Component
+ * File: frontend/src/components/Navbar.jsx
+ *
+ * Sticky header providing brand identity, catalog search with query routing,
+ * dynamic badges for wishlist and shopping cart item counts, and user authentication
+ * controls (profile badge, order history, login/register triggers).
+ */
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, User, LogOut, Package, Heart, Sparkles } from 'lucide-react';
@@ -5,6 +14,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useWishlist } from '../context/WishlistContext.jsx';
 
+/**
+ * Top navigation bar with live cart/wishlist counters and search submission.
+ */
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { cart } = useCart();
@@ -12,6 +24,10 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
+  /**
+   * Submit search input and redirect user to `/search?q=...`
+   * @param {React.FormEvent} e - Form submission event
+   */
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {

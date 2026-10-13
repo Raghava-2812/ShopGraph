@@ -1,3 +1,14 @@
+/**
+ * ShopGraph - Catalog Products & Category Filtering Page
+ * File: frontend/src/pages/ProductsPage.jsx
+ *
+ * Full e-commerce catalog page featuring:
+ *   - Category, Brand, and Price/Popularity sorting controls
+ *   - URL query parameter synchronization (`?category=...`)
+ *   - Category-specific knowledge graph recommendations & accessories
+ *   - Responsive product grid with active filter chips
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { productsAPI, recommendationsAPI } from '../services/api.js';
@@ -5,6 +16,9 @@ import ProductCard from '../components/ProductCard.jsx';
 import RecommendationSection from '../components/RecommendationSection.jsx';
 import { SlidersHorizontal, Filter, ArrowUpDown, X } from 'lucide-react';
 
+/**
+ * Catalog exploration page with facet filters and recommendations.
+ */
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -14,6 +28,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('popular');
   const [loading, setLoading] = useState(true);
 
+  // Category-level recommendations state
   const [categoryRecs, setCategoryRecs] = useState(null);
   const [loadingCategoryRecs, setLoadingCategoryRecs] = useState(false);
 

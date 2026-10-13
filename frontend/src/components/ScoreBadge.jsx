@@ -1,14 +1,30 @@
+/**
+ * ShopGraph - Recommendation Score Badge Component
+ * File: frontend/src/components/ScoreBadge.jsx
+ *
+ * Displays transparent Knowledge Graph recommendation match score (0-100).
+ * Clearly framed as a Knowledge Graph Match Score, styled using tiered
+ * color brackets according to recommendation strength:
+ *   - >= 85: Emerald (Exceptional match)
+ *   - >= 70: Blue (Strong match)
+ *   - >= 50: Indigo (Moderate match)
+ *   - < 50: Slate (Low match)
+ */
+
 import React from 'react';
 
 /**
- * ScoreBadge displays the transparent Knowledge Graph recommendation score (0-100).
- * Never framed as a probability, but explicitly as a Recommendation Score.
+ * Score indicator badge.
+ *
+ * @param {Object} props
+ * @param {number|string} props.score - Raw score value (0 to 100)
+ * @param {'default'|'large'} [props.size='default'] - Display variant
  */
 export default function ScoreBadge({ score, size = 'default' }) {
   const numericScore = typeof score === 'number' ? score : parseFloat(score) || 0;
   const formattedScore = numericScore.toFixed(1);
 
-  // Styling based on score ranges
+  // Dynamic color palette based on match score bracket
   let colorClasses = {
     badge: 'bg-blue-50 text-blue-800 border-blue-200',
     number: 'text-blue-700',
@@ -46,6 +62,7 @@ export default function ScoreBadge({ score, size = 'default' }) {
     };
   }
 
+  // Large hero variant (used in modal explanation header)
   if (size === 'large') {
     return (
       <div className={`inline-flex flex-col items-center justify-center p-3.5 rounded-xl border ${colorClasses.badge} shadow-sm`}>
@@ -62,6 +79,7 @@ export default function ScoreBadge({ score, size = 'default' }) {
     );
   }
 
+  // Standard compact badge (rendered in recommendation cards)
   return (
     <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg border ${colorClasses.badge} shadow-xs text-center min-w-[76px]`}>
       <span className={`text-lg font-bold leading-tight ${colorClasses.number}`}>

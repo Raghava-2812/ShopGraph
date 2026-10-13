@@ -1,6 +1,24 @@
+/**
+ * ShopGraph - Product Knowledge Graph Details Modal
+ * File: frontend/src/components/ProductDetailModal.jsx
+ *
+ * Detailed modal inspector showing all knowledge graph properties for a selected product:
+ * brand, category, hardware features, target use cases, and connected catalog items.
+ */
+
 import React from 'react';
 import { X, Tag, Cpu, Briefcase, CheckCircle, Package, Layers, Info } from 'lucide-react';
 
+/**
+ * Modal dialog for inspecting a product's knowledge graph node attributes.
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Visibility flag
+ * @param {Function} props.onClose - Dismiss callback
+ * @param {Object} props.productDetails - Product node details (features, use cases, etc.)
+ * @param {boolean} [props.loading=false] - Whether metadata fetch is in flight
+ * @param {Function} [props.onSelectAsPurchased] - Callback to select product as the new recommendation seed
+ */
 export default function ProductDetailModal({
   isOpen,
   onClose,
