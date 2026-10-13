@@ -4,6 +4,18 @@
 
 ---
 
+## 🚀 Live Demo
+
+**Frontend:**
+https://shopgraph-frontend.onrender.com
+
+**Backend API / Swagger:**
+https://shopgraph-backend.onrender.com/docs
+
+> The frontend is connected to the FastAPI backend, which communicates with the Animal Kingdom Knowledge Graph stored in Neo4j Aura.
+
+---
+
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
